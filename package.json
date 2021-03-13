@@ -1,0 +1,23 @@
+{
+  "name": "rapid-loader",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node ./src/app.js",
+    "test": "./node_modules/.bin/eslint --fix src/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/t-ski/rapid-loader.git"
+  },
+  "author": "Thassilo Martin Schiepanski",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/t-ski/rapid-loader/issues"
+  },
+  "homepage": "https://github.com/t-ski/rapid-loader#readme",
+  "devDependencies": {
+    "eslint": "^7.21.0"
+  }
+}
