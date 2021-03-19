@@ -1,4 +1,4 @@
-const RAPID = (module => {
+var RAPID = (module => {
 
     function post(url, body) {
         return fetch(url, {
@@ -14,9 +14,18 @@ const RAPID = (module => {
         });
     }
 
-    HTMLElement.prototype.load = function(id) {
-        let data = post();
-        console.log(data);
+    /**
+     * Load markup into a given host element.
+     * @param {HTMLElement} element Host element
+     * @param {String} content Content name
+     */
+    module.load = function(element, content) {
+        post(config.requestEndpoint, {
+            pathname: document.location.pathname,
+            content: content
+        }).then(data => data.json()).then(data => {
+            element.innerHTML = data
+        });
     };
 
     return module;
