@@ -1,5 +1,6 @@
 const config = {
-    frontendModuleFileName: "rapid.loader.frontend.js"
+    frontendModuleFileName: "rapid.loader.frontend.js",
+    requestEndpoint: "_load"
 };
 
 const {readFileSync} = require("fs");
@@ -28,6 +29,11 @@ function init(coreAppInstance) {
         res.setHeader("Content-Type", "text/javascript");
 
         return frontendModuleData;
+    });
+
+    coreAppInstance.route("post", `/${config.requestEndpoint}`, body => {
+        console.log(body);
+        return "...";
     });
 }
 
