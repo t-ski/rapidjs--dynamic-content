@@ -52,7 +52,7 @@ var RAPID = (module => {
         const internalPathname = `${document.location.pathname.slice(0, baseIndex)}${config.dynamicPageDirPrefix}${document.location.pathname.slice(baseIndex).replace(CONTENT_NAME_REGEX, ``)}`;
         post(config.requestEndpoint, {
             pathname: internalPathname,
-            content: content
+            content: content || config.defaultContentName
         }).then(data => {
             if(data.status != 200) {
                 throw 404;
@@ -73,12 +73,20 @@ var RAPID = (module => {
     // INTERFACE
 
     module.load = function(content) {
-        load(content);
+        load(content);  // TODO: (How to) send body along?
         
         const newPathname = document.location.href.replace(CONTENT_NAME_REGEX, `${config.dynamicPageDirPrefix}${content}`);
         history.pushState({
 
-        }, "", newPathname); // TODO: (How to) send body along?
+        }, "", newPathname);
+    };
+
+    /**
+     * Get the name of the currently loaded content.
+     * @returns {String} Content name
+     */
+    module.contentName = function() {
+        return runtimeData.contentName;
     };
 
     return module;
