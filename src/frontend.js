@@ -34,20 +34,6 @@ window.addEventListener("popstate", e => {
 	load(e.state.content);
 });
 
-function post(url, body) {
-	return fetch(url, {
-		method: "POST",
-		mode: "same-origin",
-		credentials: "same-origin",
-		headers: {
-			"Content-Type": "application/json"
-		},
-		redirect: "follow",
-		referrerPolicy: "no-referrer",
-		body: JSON.stringify(body)
-	});
-}
-
 function getStateObj() {
 	return {
 		content: runtimeData.contentName
@@ -68,7 +54,7 @@ function load(content, progressCallback) {
 
 	const baseIndex = document.location.pathname.lastIndexOf("/") + 1;
 	const internalPathname = `${document.location.pathname.slice(0, baseIndex)}${config.dynamicPageDirPrefix}${document.location.pathname.slice(baseIndex).replace(CONTENT_NAME_REGEX, "")}`;
-	post(config.requestEndpoint, {
+	module.post(config.requestEndpoint, {
 		pathname: internalPathname,
 		content: content || config.defaultContentName
 	}).then(async res => {

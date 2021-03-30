@@ -11,7 +11,7 @@ const {readFileSync, existsSync} = require("fs");
 const {join} = require("path");
 
 function init(coreAppInstance) {
-	coreAppInstance.initFeature(__dirname, config.moduleName, config);
+	coreAppInstance.initFeatureFrontend(__dirname, config.moduleName, config);
     
 	// Add POST route to retrieve specific content
 	coreAppInstance.route("post", `/${config.requestEndpoint}`, body => {
