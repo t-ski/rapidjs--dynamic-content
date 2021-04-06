@@ -44,7 +44,7 @@ function getStateObj() {
  * Load markup into the designated wrapper element.
  * @param {String} content Content name
  * @param {Function} [progressCallback] Callback getting passed a content download progress value [0, 1] for custom loading time handling (e.g. visual feedback)
- * @returns {Promise} Resolves if the loading process successfully ends (rejects on error)
+ * @returns {Promise} Resolves empty on success (error if failure)
  */
 function load(content, progressCallback) {
 	if(!runtimeData.wrapper) {
@@ -88,11 +88,12 @@ function load(content, progressCallback) {
 			}
 			
 			runtimeData.wrapper.innerHTML = JSON.parse(new TextDecoder("utf-8").decode(chunksAll));
-
-			resolve({
+			console.log({
 				oldContent: (runtimeData.contentName == content) ? null : runtimeData.contentName,
 				newContent: content
-			});
+			})
+
+			resolve();
 		}).catch(err => {
 			reject(err);
 		});
@@ -105,16 +106,28 @@ function load(content, progressCallback) {
 
 // INTERFACE
 
+/**
+ * Exposed load method.
+ * @param {String} content Content name
+ * @param {Function} [progressCallback] Callback getting passed a content download progress value [0, 1] for custom loading time handling (e.g. visual feedback)
+ * @returns {Promise} Resolves to an object containing the old and the new content name ({oldContent: ..., newContent: ...}) on success (error if failure)
+ */
 module.load = function(content, progressCallback) {
-	new Promise((resolve, reject) => {
+	return new Promise((resolve, reject) => {
 		load(content, progressCallback).then(_ => {
+			// Resolve to old and new content name on success
+			const contentNameObject = {
+				oldContent: (runtimeData.contentName == content) ? null : runtimeData.contentName,
+				newContent: content
+			}
+
 			runtimeData.contentName = content;
 			
 			// Manipulate history object
 			const newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "") + ((content == config.defaultContentName) ? "" : (config.dynamicPageDirPrefix + content));
 			history.pushState(getStateObj(), "", newPathname);
-		}).then(contents => {
-			resolve(contents);
+
+			resolve(contentNameObject);
 		}).catch(err => {
 			reject(err);
 		});
