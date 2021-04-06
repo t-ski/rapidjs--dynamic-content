@@ -23,7 +23,7 @@ function init(coreAppInstance) {
 		if(!existsSync(contentFilePath)) {
 			throw 404;
 		}
-
+		
 		return String(readFileSync(contentFilePath));
 	});
 }

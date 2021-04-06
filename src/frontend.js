@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", _ => {
 		// No further action as no wrapper element defined
 		return;
 	}
-
+	
 	runtimeData.wrapper.removeAttribute(config.wrapperElementAttribute);
     
 	runtimeData.contentName = document.location.pathname.match(CONTENT_NAME_REGEX);
@@ -44,6 +44,7 @@ function getStateObj() {
  * Load markup into the designated wrapper element.
  * @param {String} content Content name
  * @param {Function} [progressCallback] Callback getting passed a content download progress value [0, 1] for custom loading time handling (e.g. visual feedback)
+ * @returns {Promise} Resolves if the loading process successfully ends (rejects on error)
  */
 function load(content, progressCallback) {
 	if(!runtimeData.wrapper) {
@@ -54,41 +55,47 @@ function load(content, progressCallback) {
 
 	const baseIndex = document.location.pathname.lastIndexOf("/") + 1;
 	const internalPathname = `${document.location.pathname.slice(0, baseIndex)}${config.dynamicPageDirPrefix}${document.location.pathname.slice(baseIndex).replace(CONTENT_NAME_REGEX, "")}`;
-	module.post(config.requestEndpoint, {
-		pathname: internalPathname,
-		content: content || config.defaultContentName
-	}).then(async res => {
-		if(res.status != 200) {
-			document.location.href = document.location.pathname.replace(/\/[^/]+$/, "/404.html");
-		}
-        
-		// Explicitly download body to handle progress
-		const contentLength = res.headers.get("Content-Length");
-		let receivedLength = 0;
+	
+	return new Promise((resolve, reject) => {
+		module.post(config.requestEndpoint, {
+			pathname: internalPathname,
+			content: content || config.defaultContentName
+		}).then(async res => {
+			if(res.status != 200) {
+				document.location.href = document.location.pathname.replace(/\/[^/]+$/, "/404.html");
+			}
+			
+			// Explicitly download body to handle progress
+			const contentLength = res.headers.get("Content-Length");
+			let receivedLength = 0;
 
-		const reader = res.body.getReader();
-		let chunks = [];
-		let curChunk;
-		while((curChunk = await reader.read()) && !curChunk.done) {
-			callProgressCallback(receivedLength / contentLength);
+			const reader = res.body.getReader();
+			let chunks = [];
+			let curChunk;
+			while((curChunk = await reader.read()) && !curChunk.done) {
+				callProgressCallback(receivedLength / contentLength);
 
-			receivedLength += curChunk.value.length;
-			chunks.push(curChunk.value);
-		}
-		callProgressCallback(1);
+				receivedLength += curChunk.value.length;
+				chunks.push(curChunk.value);
+			}
+			callProgressCallback(1);
 
-		let chunksAll = new Uint8Array(receivedLength);
-		let position = 0;
-		for(let chunk of chunks) {
-			chunksAll.set(chunk, position);
-			position += chunk.length;
-		}
-        
-		runtimeData.wrapper.innerHTML = JSON.parse(new TextDecoder("utf-8").decode(chunksAll));
+			let chunksAll = new Uint8Array(receivedLength);
+			let position = 0;
+			for(let chunk of chunks) {
+				chunksAll.set(chunk, position);
+				position += chunk.length;
+			}
+			
+			runtimeData.wrapper.innerHTML = JSON.parse(new TextDecoder("utf-8").decode(chunksAll));
 
-		// Dispatch content loaded event
-		const event = new Event(config.loadEventName);
-		document.dispatchEvent(event);
+			resolve({
+				oldContent: (runtimeData.contentName == content) ? null : runtimeData.contentName,
+				newContent: content
+			});
+		}).catch(err => {
+			reject(err);
+		});
 	});
 
 	function callProgressCallback(progress) {
@@ -99,13 +106,19 @@ function load(content, progressCallback) {
 // INTERFACE
 
 module.load = function(content, progressCallback) {
-	load(content, progressCallback);  // TODO: (How to) send body along?
-    
-	runtimeData.contentName = content;
-
-	// Manipulate history object
-	const newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "") + ((content == config.defaultContentName) ? "" : (config.dynamicPageDirPrefix + content));
-	history.pushState(getStateObj(), "", newPathname);
+	new Promise((resolve, reject) => {
+		load(content, progressCallback).then(_ => {
+			runtimeData.contentName = content;
+			
+			// Manipulate history object
+			const newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "") + ((content == config.defaultContentName) ? "" : (config.dynamicPageDirPrefix + content));
+			history.pushState(getStateObj(), "", newPathname);
+		}).then(contents => {
+			resolve(contents);
+		}).catch(err => {
+			reject(err);
+		});
+	});
 };
 
 /**
@@ -114,4 +127,4 @@ module.load = function(content, progressCallback) {
  */
 module.contentName = function() {
 	return runtimeData.contentName;
-};
+};	// TODO: Remove?
