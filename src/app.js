@@ -10,6 +10,8 @@ const config = {
 const {readFileSync, existsSync} = require("fs");
 const {join} = require("path");
 
+// TODO: Implement markup iterator over all content file idnetifiers (e.g. for displaying buttons)
+
 function init(coreAppInstance) {
 	coreAppInstance.initFeatureFrontend(__dirname, config.moduleName, config);
     

@@ -2,6 +2,11 @@
 
 // Reusable runtime runtimeData storage
 let runtimeData = {};
+// Load handler callbacks
+let loadHandlers = {
+	progress: [],
+	finished: [] 
+};
 
 const CONTENT_NAME_REGEX = new RegExp(`(\\${config.dynamicPageDirPrefix}[a-z0-9_-]+)+`, "i");
 
@@ -13,14 +18,15 @@ document.addEventListener("DOMContentLoaded", _ => {
 		// No further action as no wrapper element defined
 		return;
 	}
-	
+
 	runtimeData.wrapper.removeAttribute(config.wrapperElementAttribute);
     
 	runtimeData.contentName = document.location.pathname.match(CONTENT_NAME_REGEX);
 	runtimeData.contentName && (runtimeData.contentName = runtimeData.contentName[0].split(config.dynamicPageDirPrefix)[1]);
 	!runtimeData.contentName && (runtimeData.contentName = config.defaultContentName);
-
-	load(runtimeData.contentName);
+	
+	// Make initial load call
+	load(runtimeData.contentName, true);
 
 	history.replaceState(getStateObj(), "");
 });
@@ -41,12 +47,12 @@ function getStateObj() {
 }
 
 /**
- * Load markup into the designated wrapper element.
+ * Internal load method.
  * @param {String} content Content name
- * @param {Function} [progressCallback] Callback getting passed a content download progress value [0, 1] for custom loading time handling (e.g. visual feedback)
+ * @param {Boolean} [isInitial=false] Whethter it is the initially load call
  * @returns {Promise} Resolves empty on success (error if failure)
  */
-function load(content, progressCallback) {
+function load(content, isInitial = false) {
 	if(!runtimeData.wrapper) {
 		console.error("No wrapper element defined");
 
@@ -57,7 +63,7 @@ function load(content, progressCallback) {
 	const internalPathname = `${document.location.pathname.slice(0, baseIndex)}${config.dynamicPageDirPrefix}${document.location.pathname.slice(baseIndex).replace(CONTENT_NAME_REGEX, "")}`;
 	
 	return new Promise((resolve, reject) => {
-		module.post(config.requestEndpoint, {
+		RAPID.core.post(config.requestEndpoint, {
 			pathname: internalPathname,
 			content: content || config.defaultContentName
 		}).then(async res => {
@@ -73,12 +79,13 @@ function load(content, progressCallback) {
 			let chunks = [];
 			let curChunk;
 			while((curChunk = await reader.read()) && !curChunk.done) {
-				callProgressCallback(receivedLength / contentLength);
+				applyHandlerCallbacks(loadHandlers.progress, [receivedLength / contentLength], isInitial);
 
 				receivedLength += curChunk.value.length;
 				chunks.push(curChunk.value);
 			}
-			callProgressCallback(1);
+
+			applyHandlerCallbacks(loadHandlers.progress, [1], isInitial);
 
 			let chunksAll = new Uint8Array(receivedLength);
 			let position = 0;
@@ -88,10 +95,13 @@ function load(content, progressCallback) {
 			}
 			
 			runtimeData.wrapper.innerHTML = JSON.parse(new TextDecoder("utf-8").decode(chunksAll));
-			console.log({
-				oldContent: (runtimeData.contentName == content) ? null : runtimeData.contentName,
-				newContent: content
-			})
+			
+			// Call finished handler with old and new content name
+			const contentNames = {
+				old: (runtimeData.contentName == content) ? null : runtimeData.contentName,
+				new: content
+			};
+			applyHandlerCallbacks(loadHandlers.finished, [contentNames.old, contentNames.new], isInitial);
 
 			resolve();
 		}).catch(err => {
@@ -99,38 +109,61 @@ function load(content, progressCallback) {
 		});
 	});
 
-	function callProgressCallback(progress) {
-		progressCallback && progressCallback(progress);
+	/**
+	 * Apply all set up handlers of a certain type.
+	 * @helper
+	 * @param {Array} handler Handler array reference 
+	 * @param {Array} args Array of arguments to pass to callback
+	 */
+	function applyHandlerCallbacks(handler, args, isInitial) {
+		(handler || []).forEach(handler => {
+			if(isInitial && !handler.callInitially) {
+				// Ignore if is initial call but disabled for initial load
+				return;
+			}
+
+			handler.callback.apply(null, args);
+		});
 	}
 }
 
-// INTERFACE
+/**
+ * Load markup into the designated wrapper element
+ * @param {String} content Content name
+ */
+module.load = function(content) {
+	load(content).then(_ => {
+		runtimeData.contentName = content;
+		
+		// Manipulate history object
+		const newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "") + ((content == config.defaultContentName) ? "" : (config.dynamicPageDirPrefix + content));
+		history.pushState(getStateObj(), "", newPathname);
+	}).catch(err => {
+		console.error(err);
+	});
+};
 
 /**
- * Exposed load method.
- * @param {String} content Content name
- * @param {Function} [progressCallback] Callback getting passed a content download progress value [0, 1] for custom loading time handling (e.g. visual feedback)
- * @returns {Promise} Resolves to an object containing the old and the new content name ({oldContent: ..., newContent: ...}) on success (error if failure)
+ * Add a progress handler.
+ * @param {Function} callback Progress callback getting passed a content download progress value [0, 1] for custom loading time handling (e.g. visual feedback)
+ * @param {Boolean} [callInitially=true] Whether to apply callback on initial load
  */
-module.load = function(content, progressCallback) {
-	return new Promise((resolve, reject) => {
-		load(content, progressCallback).then(_ => {
-			// Resolve to old and new content name on success
-			const contentNameObject = {
-				oldContent: (runtimeData.contentName == content) ? null : runtimeData.contentName,
-				newContent: content
-			}
+module.addProgressHandler = function(callback, callInitially = true) {
+	loadHandlers.progress.push({
+		callback: callback,
+		callInitially: callInitially
+	});
+};
 
-			runtimeData.contentName = content;
-			
-			// Manipulate history object
-			const newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "") + ((content == config.defaultContentName) ? "" : (config.dynamicPageDirPrefix + content));
-			history.pushState(getStateObj(), "", newPathname);
-
-			resolve(contentNameObject);
-		}).catch(err => {
-			reject(err);
-		});
+/**
+ * Add a finished handler.
+ * @param {Function} callback Callback getting passed an old and a new content name after successfully having loaded content
+ * @param {Boolean} [callInitially=true] Whether to apply callback on initial load
+ */
+ module.addFinishedHandler = function(callback, callInitially = true) {
+	loadHandlers.finished.push({
+		callback: callback,
+		callInitially: callInitially
 	});
 };
 
@@ -138,6 +171,8 @@ module.load = function(content, progressCallback) {
  * Get the name of the currently loaded content.
  * @returns {String} Content name
  */
-module.contentName = function() {
+module.content = function() {
 	return runtimeData.contentName;
 };	// TODO: Remove?
+
+// TODO: Call setProgressHandler() on backwards navigation?
