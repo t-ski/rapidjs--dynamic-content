@@ -1,5 +1,3 @@
-/*global config*/
-
 // Reusable runtime runtimeData storage
 let runtimeData = {};
 // Load handler callbacks
