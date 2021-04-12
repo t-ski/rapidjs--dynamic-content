@@ -1,3 +1,8 @@
+/**
+ * @copyright Thassilo Martin Schiepanski
+ * t-ski@GitHub
+ */
+
 const config = {
 	defaultContentName: "index",
 	dynamicPageDirPrefix: ":",
@@ -12,8 +17,8 @@ const {join} = require("path");
 
 // TODO: Implement markup iterator over all content file idnetifiers (e.g. for displaying buttons)
 
-function init(coreAppInstance) {
-	coreAppInstance.initFeatureFrontend(__dirname, config.moduleName, config);
+module.exports = coreAppInstance => {
+	coreAppInstance.initFeatureFrontend(__dirname, config);
     
 	// Add POST route to retrieve specific content
 	coreAppInstance.route("post", `/${config.requestEndpoint}`, body => {
@@ -28,6 +33,4 @@ function init(coreAppInstance) {
 		
 		return String(readFileSync(contentFilePath));
 	});
-}
-
-module.exports = init;
+};

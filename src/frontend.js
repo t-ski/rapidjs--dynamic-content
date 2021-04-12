@@ -1,3 +1,8 @@
+/**
+ * @copyright Thassilo Martin Schiepanski
+ * t-ski@GitHub
+ */
+
 // Reusable runtime runtimeData storage
 let runtimeData = {};
 // Load handler callbacks
@@ -171,6 +176,4 @@ module.addProgressHandler = function(callback, callInitially = true) {
  */
 module.content = function() {
 	return runtimeData.contentName;
-};	// TODO: Remove?
-
-// TODO: Call setProgressHandler() on backwards navigation?
+};
