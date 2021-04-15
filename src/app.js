@@ -18,7 +18,7 @@ const {join} = require("path");
 
 module.exports = coreAppInstance => {
 	// Integrate dependencies
-	require("../../rapid-dynamic-pages/src/app")(coreAppInstance);
+	coreAppInstance.require("../../rapid-dynamic-pages/src/app");
 
 	// Initialize feature frontend module
 	coreAppInstance.initFeatureFrontend(__dirname, config);
@@ -28,7 +28,7 @@ module.exports = coreAppInstance => {
 		if(!body.content) {
 			body.content = config.defaultContentName;
 		}
-
+		
 		// Wrap single content names passed as string in an array for uniformal handling
 		body.content = !Array.isArray(body.content) ? [body.content] : body.content;
 
@@ -43,7 +43,6 @@ module.exports = coreAppInstance => {
 			// Use content file as no valid directory found
 			contentFilePath = `${contentFilePath}.html`;
 		}
-		console.log(contentFilePath);
 		if(!existsSync(contentFilePath)) {
 			throw 404;
 		}
