@@ -1,8 +1,3 @@
-/**
- * @copyright Thassilo Martin Schiepanski
- * t-ski@GitHub
- */
-
 // Reusable runtime runtimeData storage
 let runtimeData = {};
 // Load handler callbacks
@@ -11,7 +6,7 @@ let loadHandlers = {
 	finished: [] 
 };
 
-const CONTENT_NAME_REGEX = new RegExp(`(\\${config.dynamicPageDirPrefix}[a-z0-9_-]+)+`, "i");
+const CONTENT_NAME_REGEX = new RegExp(`(\\${config.dynamicPageContentPrefix}[a-z0-9_-]+)+$`, "i");
 
 // Initialize
 document.addEventListener("DOMContentLoaded", _ => {
@@ -25,7 +20,8 @@ document.addEventListener("DOMContentLoaded", _ => {
 	runtimeData.wrapper.removeAttribute(config.wrapperElementAttribute);
     
 	runtimeData.contentName = document.location.pathname.match(CONTENT_NAME_REGEX);
-	runtimeData.contentName && (runtimeData.contentName = runtimeData.contentName[0].split(config.dynamicPageDirPrefix)[1]);
+	runtimeData.contentName && (runtimeData.contentName = runtimeData.contentName[0].match(new RegExp(`\\${config.dynamicPageContentPrefix}[a-z0-9_-]+`, "gi")).map(content => content.slice(config.dynamicPageContentPrefix.length)));
+	runtimeData.contentName && (runtimeData.contentName = (runtimeData.contentName.length == 1) ? runtimeData.contentName[0] : runtimeData.contentName);
 	!runtimeData.contentName && (runtimeData.contentName = config.defaultContentName);
 	
 	// Make initial load call
@@ -63,7 +59,7 @@ function load(content, isInitial = false) {
 	}
 
 	const baseIndex = document.location.pathname.lastIndexOf("/") + 1;
-	const internalPathname = `${document.location.pathname.slice(0, baseIndex)}${config.dynamicPageDirPrefix}${document.location.pathname.slice(baseIndex).replace(CONTENT_NAME_REGEX, "")}`;
+	const internalPathname = `${document.location.pathname.slice(0, baseIndex)}${config.dynamicPageContentPrefix}${document.location.pathname.slice(baseIndex).replace(CONTENT_NAME_REGEX, "")}`;
 	
 	return new Promise((resolve, reject) => {
 		RAPID.core.post(config.requestEndpoint, {
@@ -138,8 +134,10 @@ module.load = function(content) {
 	load(content).then(_ => {
 		runtimeData.contentName = content;
 		
+		!Array.isArray(content) && (content = [content]);
+		
 		// Manipulate history object
-		const newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "") + ((content == config.defaultContentName) ? "" : (config.dynamicPageDirPrefix + content));
+		const newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "") + ((content[0] == config.defaultContentName) ? "" : content.map(cont => `${config.dynamicPageContentPrefix}${cont}`).join(""));
 		history.pushState(getStateObj(), "", newPathname);
 	}).catch(err => {
 		console.error(err);
@@ -163,7 +161,7 @@ module.addProgressHandler = function(callback, callInitially = true) {
  * @param {Function} callback Callback getting passed an old and a new content name after successfully having loaded content
  * @param {Boolean} [callInitially=true] Whether to apply callback on initial load
  */
- module.addFinishedHandler = function(callback, callInitially = true) {
+module.addFinishedHandler = function(callback, callInitially = true) {
 	loadHandlers.finished.push({
 		callback: callback,
 		callInitially: callInitially
