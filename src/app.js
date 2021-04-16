@@ -5,7 +5,8 @@
 
 const config = {
 	defaultContentName: "index",
-	dynamicPageContentPrefix: ":",
+	dynamicPageDirPrefix: ":",
+	dynamicPageFilePrefix: "_",
 	loadEventName: "rapid--ContentLoaded",
 	requestEndpoint: "_loader",
 	wrapperElementAttribute: "rapid--wrapper"
@@ -33,16 +34,19 @@ module.exports = coreAppInstance => {
 		body.content = !Array.isArray(body.content) ? [body.content] : body.content;
 
 		let contentFilePath = join(coreAppInstance.webPath(),
-			body.pathname, body.content.slice(0, -1).map(content => `${config.dynamicPageContentPrefix}${content}`).join("/"),
-			`${config.dynamicPageContentPrefix}${body.content.slice(-1)}`);
+			body.pathname, body.content.slice(0, -1).map(content => `${config.dynamicPageDirPrefix}${content}`).join("/"));
+		const lastContentName = body.content.slice(-1);
 		
-		if(existsSync(contentFilePath)) {
+		const subDirectoryPath = join(contentFilePath, `${config.dynamicPageDirPrefix}${lastContentName}`, `${config.dynamicPageFilePrefix}${config.defaultContentName}.html`);
+		console.log(subDirectoryPath);
+		if(existsSync(subDirectoryPath)) {
 			// Found directory to use (index added as is prioritized; ignoring existing content files on same level)
-			contentFilePath = join(contentFilePath, `${config.dynamicPageContentPrefix}${config.defaultContentName}.html`);
+			contentFilePath = subDirectoryPath;
 		} else {
 			// Use content file as no valid directory found
-			contentFilePath = `${contentFilePath}.html`;
+			contentFilePath = join(contentFilePath, `${config.dynamicPageFilePrefix}${lastContentName}.html`);
 		}
+		
 		if(!existsSync(contentFilePath)) {
 			throw 404;
 		}
