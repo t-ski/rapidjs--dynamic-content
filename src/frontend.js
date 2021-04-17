@@ -21,7 +21,6 @@ document.addEventListener("DOMContentLoaded", _ => {
     
 	runtimeData.contentName = document.location.pathname.match(CONTENT_NAME_REGEX);
 	runtimeData.contentName && (runtimeData.contentName = runtimeData.contentName[0].match(new RegExp(`\\${config.dynamicPageDirPrefix}[a-z0-9_-]+`, "gi")).map(content => content.slice(config.dynamicPageDirPrefix.length)));
-	runtimeData.contentName && (runtimeData.contentName = (runtimeData.contentName.length == 1) ? runtimeData.contentName[0] : runtimeData.contentName);
 	!runtimeData.contentName && (runtimeData.contentName = config.defaultContentName);
 	
 	// Make initial load call

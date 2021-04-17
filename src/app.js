@@ -38,7 +38,6 @@ module.exports = coreAppInstance => {
 		const lastContentName = body.content.slice(-1);
 		
 		const subDirectoryPath = join(contentFilePath, `${config.dynamicPageDirPrefix}${lastContentName}`, `${config.dynamicPageFilePrefix}${config.defaultContentName}.html`);
-		console.log(subDirectoryPath);
 		if(existsSync(subDirectoryPath)) {
 			// Found directory to use (index added as is prioritized; ignoring existing content files on same level)
 			contentFilePath = subDirectoryPath;
