@@ -135,18 +135,23 @@ function load(content, isInitial = false) {
 /**
  * Load markup into the designated wrapper element
  * @param {String} content Content name
+ * @returns {Promise} Promise resolving on load complete
  */
 module.load = function(content) {
-	load(content).then(_ => {
-		runtimeData.contentName = content;
-		
-		!Array.isArray(content) && (content = [content]);
-		
-		// Manipulate history object
-		const newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "") + ((content[0] == config.defaultContentName) ? "" : content.map(cont => `${config.dynamicPageDirPrefix}${cont}`).join(""));
-		history.pushState(getStateObj(), "", newPathname);
-	}).catch(err => {
-		console.error(err);
+	return new Promise((resolve, reject) => {
+		load(content).then(_ => {
+			runtimeData.contentName = content;
+			
+			!Array.isArray(content) && (content = [content]);
+			
+			// Manipulate history object
+			const newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "") + ((content[0] == config.defaultContentName) ? "" : content.map(cont => `${config.dynamicPageDirPrefix}${cont}`).join(""));
+			history.pushState(getStateObj(), "", newPathname);
+
+			resolve();
+		}).catch(err => {
+			reject(err);
+		});
 	});
 };
 
