@@ -17,6 +17,8 @@ document.addEventListener("DOMContentLoaded", _ => {
 		return;
 	}
 
+	// TODO: Handle anchor URLs
+
 	runtimeData.wrapper.removeAttribute(config.wrapperElementAttribute);
     
 	runtimeData.contentName = document.location.pathname.match(CONTENT_NAME_REGEX);
@@ -101,6 +103,10 @@ function load(content, isInitial = false) {
 			};
 			applyHandlerCallbacks(loadHandlers.finished, [contentNames.old, contentNames.new], isInitial);
 
+			if(isInitial) {
+
+			}
+
 			resolve();
 		}).catch(err => {
 			reject(err);
@@ -115,8 +121,9 @@ function load(content, isInitial = false) {
 	 */
 	function applyHandlerCallbacks(handler, args, isInitial) {
 		(handler || []).forEach(handler => {
-			if(isInitial && !handler.callInitially) {
-				// Ignore if is initial call but disabled for initial load
+			if((isInitial && handler.flag == module.flag.EVENTUALLY)
+			|| (!isInitial && handler.flag == module.flag.INITIALLY)) {
+				// Ignore if flags compete with load event state
 				return;
 			}
 
@@ -144,26 +151,38 @@ module.load = function(content) {
 };
 
 /**
+ * Enumeration representing load type flags:
+ * ALWAYS: Alwys call handler when related event fires (initially and eventually)
+ * INITIALLY: Only call handler on initial the load
+ * EVENTUALLY: Always call handler except for on the initial load
+ */
+module.flag = {
+	ALWAYS: 0,
+	INITIALLY: 1,
+	EVENTUALLY: 2,
+};
+
+/**
  * Add a progress handler.
  * @param {Function} callback Progress callback getting passed a content download progress value [0, 1] for custom loading time handling (e.g. visual feedback)
- * @param {Boolean} [callInitially=true] Whether to apply callback on initial load
+ * @param {flag} [callInitially=flag.ALWAYS] Type of handler application (always by default)
  */
-module.addProgressHandler = function(callback, callInitially = true) {
+module.addProgressHandler = function(callback, flag = module.flag.ALWAYS) {
 	loadHandlers.progress.push({
 		callback: callback,
-		callInitially: callInitially
+		flag: flag
 	});
 };
 
 /**
  * Add a finished handler.
  * @param {Function} callback Callback getting passed an old and a new content name after successfully having loaded content
- * @param {Boolean} [callInitially=true] Whether to apply callback on initial load
+ * @param {flag} [callInitially=flag.ALWAYS] Type of handler application (always by default)
  */
-module.addFinishedHandler = function(callback, callInitially = true) {
+module.addFinishedHandler = function(callback, flag = module.flag.ALWAYS) {
 	loadHandlers.finished.push({
 		callback: callback,
-		callInitially: callInitially
+		flag: flag
 	});
 };
 

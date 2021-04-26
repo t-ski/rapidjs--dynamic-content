@@ -7,7 +7,6 @@ const config = {
 	defaultContentName: "index",
 	dynamicPageDirPrefix: ":",
 	dynamicPageFilePrefix: "_",
-	loadEventName: "rapid--ContentLoaded",
 	requestEndpoint: "_loader",
 	wrapperElementAttribute: "rapid--wrapper"
 };
