@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", _ => {
     
 	runtimeData.contentName = document.location.pathname.match(CONTENT_NAME_REGEX);
 	runtimeData.contentName && (runtimeData.contentName = runtimeData.contentName[0].match(new RegExp(`\\${config.dynamicPageDirPrefix}[a-z0-9_-]+`, "gi")).map(content => content.slice(config.dynamicPageDirPrefix.length)));
-	!runtimeData.contentName && (runtimeData.contentName = config.defaultContentName);
+	!runtimeData.contentName && (runtimeData.contentName = [config.defaultContentName]);
 	
 	// Make initial load call
 	load(runtimeData.contentName, true);
@@ -98,7 +98,7 @@ function load(content, isInitial = false) {
 			
 			// Call finished handler with old and new content name
 			const contentNames = {
-				old: (runtimeData.contentName == content) ? null : runtimeData.contentName,
+				old: isInitial ? null : runtimeData.contentName,
 				new: !Array.isArray(content) ? [content] : content
 			};
 			applyHandlerCallbacks(loadHandlers.finished, [contentNames.old, contentNames.new], isInitial);
@@ -141,7 +141,7 @@ function load(content, isInitial = false) {
 module.load = function(content) {
 	return new Promise((resolve, reject) => {
 		load(content).then(_ => {
-			runtimeData.contentName = content;
+			runtimeData.contentName = !Array.isArray(content) ? [content] : content;
 			
 			!Array.isArray(content) && (content = [content]);
 			
