@@ -99,13 +99,9 @@ function load(content, isInitial = false) {
 			// Call finished handler with old and new content name
 			const contentNames = {
 				old: (runtimeData.contentName == content) ? null : runtimeData.contentName,
-				new: content
+				new: !Array.isArray(content) ? [content] : content
 			};
 			applyHandlerCallbacks(loadHandlers.finished, [contentNames.old, contentNames.new], isInitial);
-
-			if(isInitial) {
-
-			}
 
 			resolve();
 		}).catch(err => {
@@ -127,7 +123,12 @@ function load(content, isInitial = false) {
 				return;
 			}
 
-			handler.callback.apply(null, args);
+			try {
+				handler.callback.apply(null, args);
+			} catch(err) {
+				console.error("Error applying a load handler:");
+				console.error(err);
+			}
 		});
 	}
 }
