@@ -61,8 +61,8 @@ function load(content, isInitial = false) {
 	const internalPathname = `${document.location.pathname.slice(0, baseIndex)}${config.dynamicPageDirPrefix}${document.location.pathname.slice(baseIndex).replace(CONTENT_NAME_REGEX, "")}`;
 	
 	content = !Array.isArray(content) ? [content] : content;
-	(content.slice(-1) == config.defaultContentName) && content.pop();
-	
+	(content.length > 1 && content.slice(-1) == config.defaultContentName) && content.pop();
+
 	return new Promise((resolve, reject) => {
 		RAPID.core.post(config.requestEndpoint, {
 			pathname: internalPathname,
@@ -103,7 +103,7 @@ function load(content, isInitial = false) {
 				new: content
 			};
 			applyHandlerCallbacks(loadHandlers.finished, [contentNames.old, contentNames.new], isInitial);
-
+			
 			// Manipulate history object
 			const newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "") + ((content[0] == config.defaultContentName) ? "" : content.map(cont => `${config.dynamicPageDirPrefix}${cont}`).join(""));
 			if(isInitial) {
