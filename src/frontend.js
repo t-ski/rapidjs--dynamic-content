@@ -20,15 +20,13 @@ document.addEventListener("DOMContentLoaded", _ => {
 	// TODO: Handle anchor URLs
 
 	runtimeData.wrapper.removeAttribute(config.wrapperElementAttribute);
-    
-	runtimeData.contentName = document.location.pathname.match(CONTENT_NAME_REGEX);
-	runtimeData.contentName && (runtimeData.contentName = runtimeData.contentName[0].match(new RegExp(`\\${config.dynamicPageDirPrefix}[a-z0-9_-]+`, "gi")).map(content => content.slice(config.dynamicPageDirPrefix.length)));
-	!runtimeData.contentName && (runtimeData.contentName = [config.defaultContentName]);
 	
 	// Make initial load call
-	load(runtimeData.contentName, true);
+	let initialContent = document.location.pathname.match(CONTENT_NAME_REGEX);
+	initialContent && (initialContent = initialContent[0].match(new RegExp(`\\${config.dynamicPageDirPrefix}[a-z0-9_-]+`, "gi")).map(content => content.slice(config.dynamicPageDirPrefix.length)));
+	!initialContent && (initialContent = [config.defaultContentName]);
 
-	history.replaceState(getStateObj(), "");
+	load(initialContent, true);
 });
 // Intercept backwards navigation to handle it accordingly
 window.addEventListener("popstate", e => {
@@ -58,9 +56,12 @@ function load(content, isInitial = false) {
 
 		return;
 	}
-
+	
 	const baseIndex = document.location.pathname.lastIndexOf("/") + 1;
 	const internalPathname = `${document.location.pathname.slice(0, baseIndex)}${config.dynamicPageDirPrefix}${document.location.pathname.slice(baseIndex).replace(CONTENT_NAME_REGEX, "")}`;
+	
+	content = !Array.isArray(content) ? [content] : content;
+	(content.slice(-1) == config.defaultContentName) && content.pop();
 	
 	return new Promise((resolve, reject) => {
 		RAPID.core.post(config.requestEndpoint, {
@@ -98,11 +99,21 @@ function load(content, isInitial = false) {
 			
 			// Call finished handler with old and new content name
 			const contentNames = {
-				old: isInitial ? null : runtimeData.contentName,
-				new: !Array.isArray(content) ? [content] : content
+				old: runtimeData.contentName,
+				new: content
 			};
 			applyHandlerCallbacks(loadHandlers.finished, [contentNames.old, contentNames.new], isInitial);
 
+			// Manipulate history object
+			const newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "") + ((content[0] == config.defaultContentName) ? "" : content.map(cont => `${config.dynamicPageDirPrefix}${cont}`).join(""));
+			if(isInitial) {
+				history.replaceState(getStateObj(), "", newPathname);
+			} else {
+				history.pushState(getStateObj(), "", newPathname);
+			}
+
+			runtimeData.contentName = content;
+			
 			resolve();
 		}).catch(err => {
 			reject(err);
@@ -139,21 +150,7 @@ function load(content, isInitial = false) {
  * @returns {Promise} Promise resolving on load complete
  */
 module.load = function(content) {
-	return new Promise((resolve, reject) => {
-		load(content).then(_ => {
-			runtimeData.contentName = !Array.isArray(content) ? [content] : content;
-			
-			!Array.isArray(content) && (content = [content]);
-			
-			// Manipulate history object
-			const newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "") + ((content[0] == config.defaultContentName) ? "" : content.map(cont => `${config.dynamicPageDirPrefix}${cont}`).join(""));
-			history.pushState(getStateObj(), "", newPathname);
-
-			resolve();
-		}).catch(err => {
-			reject(err);
-		});
-	});
+	return load(content);
 };
 
 /**
