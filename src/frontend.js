@@ -22,11 +22,11 @@ document.addEventListener("DOMContentLoaded", _ => {
 	runtimeData.wrapper.removeAttribute(config.wrapperElementAttribute);
 	
 	// Make initial load call
-	let initialContent = document.location.pathname.match(CONTENT_NAME_REGEX);
-	initialContent && (initialContent = initialContent[0].match(new RegExp(`\\${config.dynamicPageDirPrefix}[a-z0-9_-]+`, "gi")).map(content => content.slice(config.dynamicPageDirPrefix.length)));
-	!initialContent && (initialContent = [config.defaultContentName]);
+	runtimeData.contentName = document.location.pathname.match(CONTENT_NAME_REGEX);
+	runtimeData.contentName && (runtimeData.contentName = runtimeData.contentName[0].match(new RegExp(`\\${config.dynamicPageDirPrefix}[a-z0-9_-]+`, "gi")).map(content => content.slice(config.dynamicPageDirPrefix.length)));
+	!runtimeData.contentName && (runtimeData.contentName = [config.defaultContentName]);
 
-	load(initialContent, true);
+	load(runtimeData.contentName, true);
 });
 // Intercept backwards navigation to handle it accordingly
 window.addEventListener("popstate", e => {
