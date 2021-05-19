@@ -3,7 +3,7 @@ let runtimeData = {};
 // Load handler callbacks
 let loadHandlers = {
 	progress: [],
-	finished: [] 
+	finalizeed: [] 
 };
 
 const CONTENT_NAME_REGEX = new RegExp(`(\\${config.dynamicPageDirPrefix}[a-z0-9_-]+)+$`, "i");
@@ -31,9 +31,9 @@ document.addEventListener("DOMContentLoaded", _ => {
 // Intercept backwards navigation to handle it accordingly
 window.addEventListener("popstate", e => {
 	if(!e.state) {
-		return;
+		return;	// TODO: Initiate default process
 	}
-    
+	
 	e.preventDefault();
 	load(e.state.content);
 });
@@ -85,7 +85,6 @@ function load(content, isInitial = false) {
 				receivedLength += curChunk.value.length;
 				chunks.push(curChunk.value);
 			}
-
 			applyHandlerCallbacks(loadHandlers.progress, [1], isInitial);
 
 			let chunksAll = new Uint8Array(receivedLength);
@@ -97,12 +96,12 @@ function load(content, isInitial = false) {
 			
 			runtimeData.wrapper.innerHTML = JSON.parse(new TextDecoder("utf-8").decode(chunksAll));
 			
-			// Call finished handler with old and new content name
+			// Call finalizeed handler with old and new content name
 			const contentNames = {
 				old: runtimeData.contentName,
 				new: content
 			};
-			applyHandlerCallbacks(loadHandlers.finished, [contentNames.old, contentNames.new], isInitial);
+			applyHandlerCallbacks(loadHandlers.finalizeed, [contentNames.old, contentNames.new], isInitial);
 			
 			// Manipulate history object
 			const newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "") + ((content[0] == config.defaultContentName) ? "" : content.map(cont => `${config.dynamicPageDirPrefix}${cont}`).join(""));
@@ -128,8 +127,8 @@ function load(content, isInitial = false) {
 	 */
 	function applyHandlerCallbacks(handler, args, isInitial) {
 		(handler || []).forEach(handler => {
-			if((isInitial && handler.flag == module.flag.EVENTUALLY)
-			|| (!isInitial && handler.flag == module.flag.INITIALLY)) {
+			if((isInitial && handler.flag == plugin.flag.EVENTUALLY)
+			|| (!isInitial && handler.flag == plugin.flag.INITIALLY)) {
 				// Ignore if flags compete with load event state
 				return;
 			}
@@ -149,7 +148,7 @@ function load(content, isInitial = false) {
  * @param {String} content Content name
  * @returns {Promise} Promise resolving on load complete
  */
-module.load = function(content) {
+plugin.load = function(content) {
 	return load(content);
 };
 
@@ -159,10 +158,10 @@ module.load = function(content) {
  * INITIALLY: Only call handler on initial the load
  * EVENTUALLY: Always call handler except for on the initial load
  */
-module.flag = {
+plugin.flag = {
 	ALWAYS: 0,
 	INITIALLY: 1,
-	EVENTUALLY: 2,
+	EVENTUALLY: 2
 };
 
 /**
@@ -170,7 +169,7 @@ module.flag = {
  * @param {Function} callback Progress callback getting passed a content download progress value [0, 1] for custom loading time handling (e.g. visual feedback)
  * @param {flag} [callInitially=flag.ALWAYS] Type of handler application (always by default)
  */
-module.addProgressHandler = function(callback, flag = module.flag.ALWAYS) {
+plugin.addProgressHandler = function(callback, flag = plugin.flag.ALWAYS) {
 	loadHandlers.progress.push({
 		callback: callback,
 		flag: flag
@@ -178,12 +177,12 @@ module.addProgressHandler = function(callback, flag = module.flag.ALWAYS) {
 };
 
 /**
- * Add a finished handler.
+ * Add a finalizeed handler.
  * @param {Function} callback Callback getting passed an old and a new content name after successfully having loaded content
  * @param {flag} [callInitially=flag.ALWAYS] Type of handler application (always by default)
  */
-module.addFinishedHandler = function(callback, flag = module.flag.ALWAYS) {
-	loadHandlers.finished.push({
+plugin.addFinishedHandler = function(callback, flag = plugin.flag.ALWAYS) {
+	loadHandlers.finalizeed.push({
 		callback: callback,
 		flag: flag
 	});
@@ -193,6 +192,6 @@ module.addFinishedHandler = function(callback, flag = module.flag.ALWAYS) {
  * Get the name of the currently loaded content.
  * @returns {String} Content name
  */
-module.content = function() {
+plugin.content = function() {
 	return runtimeData.contentName;
 };

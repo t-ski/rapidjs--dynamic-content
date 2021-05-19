@@ -15,16 +15,17 @@ const {readFileSync, existsSync} = require("fs");
 const {join} = require("path");
 
 // TODO: Implement markup iterator over all content file idnetifiers (e.g. for displaying buttons)
+// TODO: Implement transition handler (or use progress handler instead?)
 
-module.exports = coreAppInstance => {
+module.exports = coreInterface => {
 	// Integrate dependencies
-	coreAppInstance.require("../../rapid-dynamic-pages/src/app");
+	coreInterface.require("../../rapid-dynamic-pages/src/app");
 
 	// Initialize feature frontend module
-	coreAppInstance.initFeatureFrontend(__dirname, config);
+	coreInterface.initFrontendModule(__dirname, config);
 	
 	// Add POST route to retrieve specific content
-	coreAppInstance.route("post", `/${config.requestEndpoint}`, body => {
+	coreInterface.setRoute("post", `/${config.requestEndpoint}`, body => {
 		if(!body.content) {
 			body.content = config.defaultContentName;
 		}
@@ -32,7 +33,7 @@ module.exports = coreAppInstance => {
 		// Wrap single content names passed as string in an array for uniformal handling
 		body.content = !Array.isArray(body.content) ? [body.content] : body.content;
 
-		let contentFilePath = join(coreAppInstance.webPath(),
+		let contentFilePath = join(coreInterface.webPath,
 			body.pathname, body.content.slice(0, -1).map(content => `${config.dynamicPageDirPrefix}${content}`).join("/"));
 		const lastContentName = body.content.slice(-1);
 		
