@@ -1,6 +1,7 @@
 /**
- * @description Feature providing dynamic content loading functionality for dynamic page environments.
- * @copyright/@author Thassilo Martin Schiepanski
+ * Plug-in providing dynamic content loading functionality for dynamic page environments.
+ * 
+ * (c) Thassilo Martin Schiepanski
  */
 
 const config = {
@@ -22,7 +23,7 @@ module.exports = coreInterface => {
 	coreInterface.require("../../rapid-dynamic-pages/src/app");
 
 	// Initialize feature frontend module
-	coreInterface.initFrontendModule(__dirname, config);
+	coreInterface.initFrontendModule(config);
 	
 	// Add POST route to retrieve specific content
 	coreInterface.setRoute("post", `/${config.requestEndpoint}`, body => {

@@ -17,8 +17,6 @@ document.addEventListener("DOMContentLoaded", _ => {
 		return;
 	}
 
-	// TODO: Handle anchor URLs
-
 	runtimeData.wrapper.removeAttribute(config.wrapperElementAttribute);
 	
 	// Make initial load call
@@ -26,7 +24,10 @@ document.addEventListener("DOMContentLoaded", _ => {
 	runtimeData.contentName && (runtimeData.contentName = runtimeData.contentName[0].match(new RegExp(`\\${config.dynamicPageDirPrefix}[a-z0-9_-]+`, "gi")).map(content => content.slice(config.dynamicPageDirPrefix.length)));
 	!runtimeData.contentName && (runtimeData.contentName = [config.defaultContentName]);
 
-	load(runtimeData.contentName, true);
+	load(runtimeData.contentName, true).then(_ => {
+		// Scroll to anchor if stated in URL
+		document.location.hash && document.querySelector(`#${document.location.hash}`).scrollIntoView();
+	});
 });
 // Intercept backwards navigation to handle it accordingly
 window.addEventListener("popstate", e => {
@@ -35,7 +36,7 @@ window.addEventListener("popstate", e => {
 	}
 	
 	e.preventDefault();
-	load(e.state.content);
+	load(e.state.content, true);
 });
 
 function getStateObj() {
@@ -47,7 +48,8 @@ function getStateObj() {
 /**
  * Internal load method.
  * @param {String} content Content name
- * @param {Boolean} [isInitial=false] Whethter it is the initially load call
+ * @param {Boolean} [isInitial=false] Whethter it is the initial load call
+ * @param {Boolean} [isHidden=false] Whethter it is a load call to be performed without affecting history
  * @returns {Promise} Resolves empty on success (error if failure)
  */
 function load(content, isInitial = false) {
