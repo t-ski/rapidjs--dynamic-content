@@ -6,7 +6,7 @@ let loadHandlers = {
 	finalizeed: [] 
 };
 
-const CONTENT_NAME_REGEX = new RegExp(`(\\${config.dynamicPageDirPrefix}[a-z0-9_-]+)+$`, "i");
+const CONTENT_NAME_REGEX = new RegExp(`(\\${config.dynamicPageDirPrefix}[a-z0-9_-]+)+(?:($|\\?))`, "i");
 
 // Initialize
 document.addEventListener("DOMContentLoaded", _ => {
@@ -24,6 +24,7 @@ document.addEventListener("DOMContentLoaded", _ => {
 	runtimeData.contentName && (runtimeData.contentName = runtimeData.contentName[0].match(new RegExp(`\\${config.dynamicPageDirPrefix}[a-z0-9_-]+`, "gi")).map(content => content.slice(config.dynamicPageDirPrefix.length)));
 	!runtimeData.contentName && (runtimeData.contentName = [config.defaultContentName]);
 
+	history.replaceState(getState(), "", document.location.href);
 	load(runtimeData.contentName, true).then(_ => {
 		// Scroll to anchor if stated in URL
 		document.location.hash && document.querySelector(`#${document.location.hash}`).scrollIntoView();
@@ -34,15 +35,14 @@ window.addEventListener("popstate", e => {
 	if(!e.state) {
 		return;	// TODO: Initiate default process
 	}
+	console.log(e.state);
 	
+	load(e.state, true);
 	e.preventDefault();
-	load(e.state.content, true);
 });
 
-function getStateObj() {
-	return {
-		content: runtimeData.contentName
-	};
+function getState() {
+	return runtimeData.contentName;
 }
 
 /**
@@ -104,16 +104,15 @@ function load(content, isInitial = false) {
 				new: content
 			};
 			applyHandlerCallbacks(loadHandlers.finalizeed, [contentNames.old, contentNames.new], isInitial);
-			
-			// Manipulate history object
-			const newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "") + ((content[0] == config.defaultContentName) ? "" : content.map(cont => `${config.dynamicPageDirPrefix}${cont}`).join(""));
-			if(isInitial) {
-				history.replaceState(getStateObj(), "", newPathname);
-			} else {
-				history.pushState(getStateObj(), "", newPathname);
-			}
 
 			runtimeData.contentName = content;
+			
+			// Manipulate history object
+			if(!isInitial) {
+				let newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "");
+				newPathname = newPathname.replace(/$|\?/, (content.length == 1 && content[0] == config.defaultContentName) ? "" : content.map(cont => `${config.dynamicPageDirPrefix}${cont}`).join(""));
+				history.pushState(getState(), "", newPathname);
+			}
 			
 			resolve();
 		}).catch(err => {
