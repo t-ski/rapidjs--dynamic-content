@@ -3,7 +3,7 @@ let runtimeData = {};
 // Load handler callbacks
 let loadHandlers = {
 	progress: [],
-	finalizeed: [] 
+	finished: [] 
 };
 
 const CONTENT_NAME_REGEX = new RegExp(`(\\${config.dynamicPageDirPrefix}[a-z0-9_-]+)+(?:($|\\?))`, "i");
@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", _ => {
 	history.replaceState(getState(), "", document.location.href);
 	load(runtimeData.contentName, true).then(_ => {
 		// Scroll to anchor if stated in URL
-		document.location.hash && document.querySelector(`#${document.location.hash}`).scrollIntoView();
+		document.location.hash && document.querySelector(document.location.hash).scrollIntoView();
 	});
 });
 // Intercept backwards navigation to handle it accordingly
@@ -98,13 +98,15 @@ function load(content, isInitial = false) {
 			
 			runtimeData.wrapper.innerHTML = JSON.parse(new TextDecoder("utf-8").decode(chunksAll));
 			
-			// Call finalizeed handler with old and new content name
+			// TODO: How to wait for parsing/rendering complete? => id on last element and iterative check for existence?
+			
+			// Call finished handler with old and new content name
 			const contentNames = {
 				old: runtimeData.contentName,
 				new: content
 			};
-			applyHandlerCallbacks(loadHandlers.finalizeed, [contentNames.old, contentNames.new], isInitial);
-
+			applyHandlerCallbacks(loadHandlers.finished, [contentNames.old, contentNames.new], isInitial);
+			
 			runtimeData.contentName = content;
 			
 			// Manipulate history object
@@ -178,12 +180,12 @@ plugin.addProgressHandler = function(callback, flag = plugin.flag.ALWAYS) {
 };
 
 /**
- * Add a finalizeed handler.
+ * Add a finished handler.
  * @param {Function} callback Callback getting passed an old and a new content name after successfully having loaded content
  * @param {flag} [callInitially=flag.ALWAYS] Type of handler application (always by default)
  */
 plugin.addFinishedHandler = function(callback, flag = plugin.flag.ALWAYS) {
-	loadHandlers.finalizeed.push({
+	loadHandlers.finished.push({
 		callback: callback,
 		flag: flag
 	});
