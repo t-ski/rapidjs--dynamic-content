@@ -25,10 +25,7 @@ document.addEventListener("DOMContentLoaded", _ => {
 	!runtimeData.contentName && (runtimeData.contentName = [config.defaultContentName]);
 
 	history.replaceState(getState(), "", document.location.href);
-	load(runtimeData.contentName, true).then(_ => {
-		// Scroll to anchor if stated in URL
-		document.location.hash && document.querySelector(document.location.hash).scrollIntoView();
-	});
+	load(runtimeData.contentName, document.location.hash ? document.location.hash : null, true);
 });
 // Intercept backwards navigation to handle it accordingly
 window.addEventListener("popstate", e => {
@@ -48,11 +45,11 @@ function getState() {
 /**
  * Internal load method.
  * @param {String} content Content name
+ * @param {String} [anchor] Anchor to scroll to after load
  * @param {Boolean} [isInitial=false] Whethter it is the initial load call
- * @param {Boolean} [isHidden=false] Whethter it is a load call to be performed without affecting history
  * @returns {Promise} Resolves empty on success (error if failure)
  */
-function load(content, isInitial = false) {
+function load(content, anchor, isInitial = false) {
 	if(!runtimeData.wrapper) {
 		console.error("No wrapper element defined");
 
@@ -71,7 +68,11 @@ function load(content, isInitial = false) {
 			content: content || config.defaultContentName
 		}).then(async res => {
 			if(res.status != 200) {
-				document.location.href = document.location.pathname.replace(/\/[^/]+$/, "/404.html");
+				const errorLocation = document.location.pathname.replace(/\/[^/]+$/, `/${res.status}`);
+				
+				window.location.replace(errorLocation);
+
+				return;
 			}
 			
 			// Explicitly download body to handle progress
@@ -115,6 +116,20 @@ function load(content, isInitial = false) {
 				newPathname = newPathname.replace(/$|\?/, (content.length == 1 && content[0] == config.defaultContentName) ? "" : content.map(cont => `${config.dynamicPageDirPrefix}${cont}`).join(""));
 				history.pushState(getState(), "", newPathname);
 			}
+
+			// Scroll to anchor if given
+			if(anchor) {
+				const anchorElement = document.querySelector(`#${anchor.replace(/^#/, "")}`);
+
+				let i = 0;
+				const anchorScrollInterval = setInterval(_ => {
+					anchorElement.scrollIntoView();
+					i++;
+					if(i >= 10) {
+						clearInterval(anchorScrollInterval);
+					}
+				}, 50);
+			}
 			
 			resolve();
 		}).catch(err => {
@@ -149,10 +164,11 @@ function load(content, isInitial = false) {
 /**
  * Load markup into the designated wrapper element
  * @param {String} content Content name
+ * @param {String} [anchor] Anchor to scroll to after load
  * @returns {Promise} Promise resolving on load complete
  */
-plugin.load = function(content) {
-	return load(content);
+plugin.load = function(content, anchor) {
+	return load(content, anchor);
 };
 
 /**

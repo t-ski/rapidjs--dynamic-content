@@ -19,9 +19,6 @@ const {join} = require("path");
 // TODO: Implement transition handler (or use progress handler instead?)
 
 module.exports = coreInterface => {
-	// Integrate dependencies
-	coreInterface.require("../../rapid-dynamic-pages/src/app");
-
 	// Initialize feature frontend module
 	coreInterface.initFrontendModule(config);
 	
