@@ -25,16 +25,15 @@ document.addEventListener("DOMContentLoaded", _ => {
 	!runtimeData.contentName && (runtimeData.contentName = [config.defaultContentName]);
 
 	history.replaceState(getState(), "", document.location.href);
-	load(runtimeData.contentName, document.location.hash ? document.location.hash : null, true);
+	load(runtimeData.contentName, document.location.hash, true);
 });
 // Intercept backwards navigation to handle it accordingly
 window.addEventListener("popstate", e => {
 	if(!e.state) {
-		return;	// TODO: Initiate default process
+		return;
 	}
-	console.log(e.state);
 	
-	load(e.state, true);
+	load(e.state, location.hash, false, true);
 	e.preventDefault();
 });
 
@@ -47,9 +46,10 @@ function getState() {
  * @param {String} content Content name
  * @param {String} [anchor] Anchor to scroll to after load
  * @param {Boolean} [isInitial=false] Whethter it is the initial load call
+ * @param {Boolean} [isHistoryBack=false] Whethter it is the history back load call
  * @returns {Promise} Resolves empty on success (error if failure)
  */
-function load(content, anchor, isInitial = false) {
+function load(content, anchor = null, isInitial = false, isHistoryBack = false) {
 	if(!runtimeData.wrapper) {
 		console.error("No wrapper element defined");
 
@@ -63,6 +63,15 @@ function load(content, anchor, isInitial = false) {
 	(content.length > 1 && content.slice(-1) == config.defaultContentName) && content.pop();
 
 	return new Promise((resolve, reject) => {
+		runtimeData.contentName = content;
+		
+		// Manipulate history object
+		if(!isInitial && !isHistoryBack) {
+			let newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "");
+			newPathname = newPathname.replace(/$|\?/, (content.length == 1 && content[0] == config.defaultContentName) ? "" : content.map(cont => `${config.dynamicPageDirPrefix}${cont}`).join(""));
+			history.pushState(getState(), "", newPathname);
+		}
+
 		RAPID.core.post(config.requestEndpoint, {
 			pathname: internalPathname,
 			content: content || config.defaultContentName
@@ -83,12 +92,12 @@ function load(content, anchor, isInitial = false) {
 			let chunks = [];
 			let curChunk;
 			while((curChunk = await reader.read()) && !curChunk.done) {
-				applyHandlerCallbacks(loadHandlers.progress, [receivedLength / contentLength], isInitial);
+				applyHandlerCallbacks(loadHandlers.progress, [receivedLength / contentLength], isInitial, isHistoryBack);
 
 				receivedLength += curChunk.value.length;
 				chunks.push(curChunk.value);
 			}
-			applyHandlerCallbacks(loadHandlers.progress, [1], isInitial);
+			applyHandlerCallbacks(loadHandlers.progress, [1], isInitial, isHistoryBack);
 
 			let chunksAll = new Uint8Array(receivedLength);
 			let position = 0;
@@ -106,19 +115,10 @@ function load(content, anchor, isInitial = false) {
 				old: runtimeData.contentName,
 				new: content
 			};
-			applyHandlerCallbacks(loadHandlers.finished, [contentNames.old, contentNames.new], isInitial);
+			applyHandlerCallbacks(loadHandlers.finished, [contentNames.old, contentNames.new], isInitial, isHistoryBack);
 			
-			runtimeData.contentName = content;
-			
-			// Manipulate history object
-			if(!isInitial) {
-				let newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "");
-				newPathname = newPathname.replace(/$|\?/, (content.length == 1 && content[0] == config.defaultContentName) ? "" : content.map(cont => `${config.dynamicPageDirPrefix}${cont}`).join(""));
-				history.pushState(getState(), "", newPathname);
-			}
-
 			// Scroll to anchor if given
-			if(anchor) {
+			if(anchor) {
 				const anchorElement = document.querySelector(`#${anchor.replace(/^#/, "")}`);
 
 				let i = 0;
@@ -143,14 +143,14 @@ function load(content, anchor, isInitial = false) {
 	 * @param {Array} handler Handler array reference 
 	 * @param {Array} args Array of arguments to pass to callback
 	 */
-	function applyHandlerCallbacks(handler, args, isInitial) {
+	function applyHandlerCallbacks(handler, args, isInitial, isHistoryBack) {
 		(handler || []).forEach(handler => {
-			if((isInitial && handler.flag == plugin.flag.EVENTUALLY)
+			if(!isHistoryBack && (isInitial && handler.flag == plugin.flag.EVENTUALLY)
 			|| (!isInitial && handler.flag == plugin.flag.INITIALLY)) {
 				// Ignore if flags compete with load event state
 				return;
 			}
-
+			
 			try {
 				handler.callback.apply(null, args);
 			} catch(err) {

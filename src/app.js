@@ -23,11 +23,14 @@ module.exports = coreInterface => {
 	coreInterface.initFrontendModule(config);
 	
 	// Add POST route to retrieve specific content
-	coreInterface.setRoute("post", `/${config.requestEndpoint}`, body => {
+	coreInterface.setRoute("post", config.requestEndpoint, body => {
 		if(!body.content) {
 			body.content = config.defaultContentName;
 		}
-		
+		if(/^\/:$/.test(body.pathname)) {
+			body.pathname += config.defaultContentName;
+		}
+
 		// Wrap single content names passed as string in an array for uniformal handling
 		body.content = !Array.isArray(body.content) ? [body.content] : body.content;
 
@@ -43,7 +46,7 @@ module.exports = coreInterface => {
 			// Use content file as no valid directory found
 			contentFilePath = join(contentFilePath, `${config.dynamicPageFilePrefix}${lastContentName}.html`);
 		}
-		
+
 		if(!existsSync(contentFilePath)) {
 			throw 404;
 		}
