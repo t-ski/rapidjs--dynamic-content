@@ -1,5 +1,5 @@
 {
-  "name": "rapid-loader",
+  "name": "rapid--dynamic-content",
   "version": "1.0.0",
   "description": "",
   "main": "src/app.js",
@@ -9,14 +9,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/t-ski/rapid-loader.git"
+    "url": "git+https://github.com/t-ski/rapid--dynamic-content.git"
   },
   "author": "Thassilo Martin Schiepanski",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/t-ski/rapid-loader/issues"
+    "url": "https://github.com/t-ski/rapid--dynamic-content/issues"
   },
-  "homepage": "https://github.com/t-ski/rapid-loader#readme",
+  "homepage": "https://github.com/t-ski/rapid--dynamic-content#readme",
   "devDependencies": {
     "eslint": "^7.21.0"
   }
