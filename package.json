@@ -1,23 +1,22 @@
 {
-  "name": "rapid--dynamic-content",
+  "name": "@t-ski/rapidjs--dynamic-content",
   "version": "1.0.0",
   "description": "",
   "main": "src/app.js",
   "scripts": {
-    "build": "node ../../_build/build.js",
     "start": "node ./src/app.js",
     "test": "./node_modules/.bin/eslint --fix src/"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/t-ski/rapid--dynamic-content.git"
+    "url": "git+https://github.com/t-ski/rapidjs--dynamic-content.git"
   },
   "author": "Thassilo Martin Schiepanski",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/t-ski/rapid--dynamic-content/issues"
+    "url": "https://github.com/t-ski/rapidjs--dynamic-content/issues"
   },
-  "homepage": "https://github.com/t-ski/rapid--dynamic-content#readme",
+  "homepage": "https://github.com/t-ski/rapidjs--dynamic-content#readme",
   "devDependencies": {
     "eslint": "^7.21.0"
   }

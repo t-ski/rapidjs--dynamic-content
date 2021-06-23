@@ -9,7 +9,7 @@ const config = {
 	dynamicPageDirPrefix: ":",
 	dynamicPageFilePrefix: "_",
 	requestEndpoint: "/_dynamic-content",
-	wrapperElementAttribute: "rapid--wrapper"
+	wrapperElementAttribute: "rapidjs--wrapper"
 };
 
 const {readFileSync, existsSync} = require("fs");
