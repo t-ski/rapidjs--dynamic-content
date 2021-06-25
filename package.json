@@ -4,9 +4,14 @@
   "description": "",
   "main": "src/app.js",
   "scripts": {
-    "start": "node ./src/app.js",
-    "test": "./node_modules/.bin/eslint --fix src/"
+    "start": "node ./dist/app.js",
+    "test": "./node_modules/.bin/eslint --fix src/",
+    "build": "npm run test && node ../../finalize-js/build.js",
+    "release": "npm run build && np"
   },
+  "files": [
+    "dist"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/t-ski/rapidjs--dynamic-content.git"
@@ -19,5 +24,8 @@
   "homepage": "https://github.com/t-ski/rapidjs--dynamic-content#readme",
   "devDependencies": {
     "eslint": "^7.21.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -163,9 +163,9 @@ function load(content, anchor = null, isInitial = false, isHistoryBack = false) 
 
 /**
  * Load markup into the designated wrapper element
- * @param {String} content Content name
+ * @param {String} content Name of content to load
  * @param {String} [anchor] Anchor to scroll to after load
- * @returns {Promise} Promise resolving on load complete
+ * @returns {Promise} Promise resolving on load complete, rejecting on error
  */
 plugin.load = function(content, anchor) {
 	return load(content, anchor);
@@ -173,7 +173,7 @@ plugin.load = function(content, anchor) {
 
 /**
  * Enumeration representing load type flags:
- * ALWAYS: Alwys call handler when related event fires (initially and eventually)
+ * ALWAYS: Always call handler when related event fires (initially and eventually)
  * INITIALLY: Only call handler on initial the load
  * EVENTUALLY: Always call handler except for on the initial load
  */
@@ -186,7 +186,7 @@ plugin.flag = {
 /**
  * Add a progress handler.
  * @param {Function} callback Progress callback getting passed a content download progress value [0, 1] for custom loading time handling (e.g. visual feedback)
- * @param {flag} [callInitially=flag.ALWAYS] Type of handler application (always by default)
+ * @param {flag} [flag=flag.ALWAYS] Type of handler application (always by default)
  */
 plugin.addProgressHandler = function(callback, flag = plugin.flag.ALWAYS) {
 	loadHandlers.progress.push({
@@ -198,7 +198,7 @@ plugin.addProgressHandler = function(callback, flag = plugin.flag.ALWAYS) {
 /**
  * Add a finished handler.
  * @param {Function} callback Callback getting passed an old and a new content name after successfully having loaded content
- * @param {flag} [callInitially=flag.ALWAYS] Type of handler application (always by default)
+ * @param {flag} [flag=flag.ALWAYS] Type of handler application (always by default)
  */
 plugin.addFinishedHandler = function(callback, flag = plugin.flag.ALWAYS) {
 	loadHandlers.finished.push({
