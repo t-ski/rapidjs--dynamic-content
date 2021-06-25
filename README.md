@@ -62,7 +62,7 @@ As usual, the page is accessible from the compound page directory location by it
 
 ### Dynamic loading
 
-The dynamic loading should basically replace the ordinary way of loading content using hyperlinks. To trigger tje content loading mechanism, use the `load` interface.
+The dynamic loading should basically replace the ordinary way of loading content using hyperlinks. To trigger the content loading mechanism, use the `load` interface.
 
 ##### Syntax
 
