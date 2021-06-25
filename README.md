@@ -1,10 +1,10 @@
-# rapidjs--components
+# rapidjs--dynamic-content
 
 <a href="https://rapidjs.org"><img src="https://rapidjs.org/_assets/readme-plugin-badge.svg" height="75"></a>
 
 ## Purpose
 
-Providing dynamic content loading functionality for dynamic page environments.
+Providing dynamic content loading functionality for compound page environments.
 
 ---
 
@@ -22,11 +22,15 @@ npm install @t-ski/rapidjs--dynamic-content
 
 The plug-in adopts dynamic content loading functionality for compound pages: By declaring an element in a compound page's base file as content wrapper, it will display encapsulated content stored in private files co-located in the compound page directory.
 
+---
+
 ### Content wrapper
 
 Any non-singleton element in a compound page base file (in other words: any element that may have child elements) can be the designated content wrapper element; define the empty attribute `rapid--wrapper` upon the respective element.
 
 > A page can not use more than one wrapper element as the loading behaviour correlates with the request URL. When attributing multiple elements only the first element present in the DOM will effective be used as the content wrapper.
+
+---
 
 ### Content
 
@@ -48,9 +52,13 @@ As the content loading process starts after the base page document has been load
 
 Content does not only have to be organized on one level, but can be nested (infinitely) into sub-content sections. This way, content is to be stored in a directory (same naming system as for compound pages). The index content file will act as the sub-level default content. In an URL pathname it is represented by multiple appendixes (e.g. */compound-page:content:sub-content*).
 
+---
+
 ### Routing
 
 As usual, the page is accessible from the compound page directory location by it's name (omitting the compound page indicator ":"). To load specific content into the designated content wrapper element on the initial page load, append the request URL pathname by a colon (content prefix) followed by the respective content name.
+
+---
 
 ### Dynamic loading
 
@@ -64,14 +72,20 @@ RAPID["dynamic-content"].load(content, anchor = undefined)
 
 ##### Parameter
 
-**content** *String*        Name of content to load
-**anchor** *String*         [optional] Anchor to scroll to after load
+**content** *String*\
+Name of content to load\
+\
+**anchor** *String*\
+[optional] Anchor to scroll to after load
 
 ##### Return value
 
-*Promise*                   Promise resolving on load complete, rejecting on error
+*Promise*\
+Promise resolving on load complete, rejecting on error
 
 > When about to load nested content, provide the content levels sequence in an ordered array of the respective names.
+
+---
 
 ### Load handlers
 
@@ -89,8 +103,11 @@ RAPID["dynamic-content"].addProgressHandler(callback, flag = flag.ALWAYS)
 
 ##### Parameter
 
-**callback** *Function*     Progress callback getting passed a content download progress value [0, 1] for custom loading time handling (e.g. visual feedback)
-**flag** *flag*             [optional] Type of handler application (always by default)
+**callback** *Function*\
+Progress callback getting passed a content download progress value [0, 1] for custom loading time handling (e.g. visual feedback)\
+\
+**flag** *flag*\
+[*optional*] Type of handler application (always by default)
 
 #### Finished handler
 
@@ -106,8 +123,11 @@ RAPID["dynamic-content"].addFinishedHandler(callback, flag = flag.ALWAYS)
 
 ##### Parameter
 
-**callback** *Function*     Callback getting passed an old and a new content name after successfully having loaded content 
-**flag** *flag*             [optional] Type of handler application (always by default)
+**callback** *Function*\
+Callback getting passed an old and a new content name after successfully having loaded content\
+\
+**flag** *flag*\
+[*optional*] Type of handler application (always by default)
 
 #### Flags
 
@@ -121,6 +141,11 @@ RAPID["dynamic-content"].flag.TYPE
 
 ##### TYPEs
 
-**ALWAYS**                  Always call handler when related event fires (initially and eventually)
-**INITIALLY**               Only call handler on initial the load
-**EVENTUALLY**              Always call handler except for on the initial load
+**ALWAYS**\
+Always call handler when related event fires (initially and eventually)\
+\
+**INITIALLY**\
+Only call handler on initial the load\
+\
+**EVENTUALLY**\
+Always call handler except for on the initial load
