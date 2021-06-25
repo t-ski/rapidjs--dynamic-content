@@ -2,7 +2,7 @@
   "name": "@t-ski/rapidjs--dynamic-content",
   "version": "1.0.2",
   "description": "rapidJS plug-in providing dynamic content loading functionality for compound page environments.",
-  "main": "src/app.js",
+  "main": "dist/app.js",
   "scripts": {
     "start": "node ./dist/app.js",
     "test": "./node_modules/.bin/eslint --fix src/",
