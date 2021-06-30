@@ -20,9 +20,7 @@ document.addEventListener("DOMContentLoaded", _ => {
 	runtimeData.wrapper.removeAttribute(config.wrapperElementAttribute);
 	
 	// Make initial load call
-	runtimeData.contentName = document.location.pathname.match(CONTENT_NAME_REGEX);
-	runtimeData.contentName && (runtimeData.contentName = runtimeData.contentName[0].match(new RegExp(`\\${config.dynamicPageDirPrefix}[a-z0-9_-]+`, "gi")).map(content => content.slice(config.dynamicPageDirPrefix.length)));
-	!runtimeData.contentName && (runtimeData.contentName = [config.defaultContentName]);
+	runtimeData.contentName = RAPID.core.compoundPage.args || [config.defaultContentName];
 
 	history.replaceState(getState(), "", document.location.href);
 	load(runtimeData.contentName, document.location.hash, true);
@@ -56,9 +54,6 @@ function load(content, anchor = null, isInitial = false, isHistoryBack = false) 
 		return;
 	}
 	
-	const baseIndex = document.location.pathname.lastIndexOf("/") + 1;
-	const internalPathname = `${document.location.pathname.slice(0, baseIndex)}${config.dynamicPageDirPrefix}${document.location.pathname.slice(baseIndex).replace(CONTENT_NAME_REGEX, "")}`;
-	
 	content = !Array.isArray(content) ? [content] : content;
 	(content.length > 1 && content.slice(-1) == config.defaultContentName) && content.pop();
 
@@ -67,13 +62,13 @@ function load(content, anchor = null, isInitial = false, isHistoryBack = false) 
 		
 		// Manipulate history object
 		if(!isInitial && !isHistoryBack) {
-			let newPathname = document.location.pathname.replace(CONTENT_NAME_REGEX, "");
-			newPathname = newPathname.replace(/$|\?/, (content.length == 1 && content[0] == config.defaultContentName) ? "" : content.map(cont => `${config.dynamicPageDirPrefix}${cont}`).join(""));
+			let newPathname = `${RAPID.core.compoundPage.base}/${(content.length == 1 && content[0] == config.defaultContentName) ? "" : content.join("/")}`;
+
 			history.pushState(getState(), "", newPathname);
 		}
 
 		RAPID.core.post(config.requestEndpoint, {
-			pathname: internalPathname,
+			pathname: RAPID.core.compoundPage.base,
 			content: content || config.defaultContentName
 		}).then(async res => {
 			if(res.status != 200) {
