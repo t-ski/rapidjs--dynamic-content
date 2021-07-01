@@ -44,7 +44,7 @@ As the content loading process starts after the base page document has been load
 
 ### Nested
 
-Content does not only have to be organized on one level, but can be nested (infinitely) into sub-content sections. This way, content is to be stored in a directory (same naming system as for compound pages). The index content file will act as the sub-level default content. In an URL pathname it is represented by multiple appendixes (e.g. */compound-page:content:sub-content*).
+Content does not only have to be organized on one level, but can be nested (infinitely) into sub-content sections. This way, content is to be stored in a directory (same naming system as for compound pages). The index content file will act as the sub-level default content. In an URL pathname it is represented by multiple appendixes (e.g. */compound-page/content/sub-content*).
 
 ---
 
