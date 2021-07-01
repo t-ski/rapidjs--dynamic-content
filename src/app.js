@@ -19,7 +19,7 @@ const {join} = require("path");
 
 module.exports = coreInterface => {
 	// Initialize feature frontend module
-	coreInterface.initFrontendModule(config);
+	coreInterface.initFrontendModule(config, true);
 	
 	// Add POST route to retrieve specific content
 	coreInterface.setRoute("post", config.requestEndpoint, body => {

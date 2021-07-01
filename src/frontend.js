@@ -56,7 +56,7 @@ function load(content, anchor = null, isInitial = false, isHistoryBack = false) 
 	
 	content = !Array.isArray(content) ? [content] : content;
 	(content.length > 1 && content.slice(-1) == config.defaultContentName) && content.pop();
-
+	
 	return new Promise((resolve, reject) => {
 		runtimeData.contentName = content;
 		
