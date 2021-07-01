@@ -12,7 +12,7 @@ const config = {
 	wrapperElementAttribute: "dynamic-content-wrapper"
 };
 
-const {readFileSync, existsSync} = require("fs");
+const {existsSync} = require("fs");
 const {join} = require("path");
 
 // TODO: Implement markup iterator over all content file idnetifiers (e.g. for displaying buttons)
@@ -31,7 +31,7 @@ module.exports = coreInterface => {
 		}
 		
 		// Tranlsate pathname to internal compound page representation
-		body.pathname = body.pathname.replace(/([^\/]+)$/, ":$1");
+		body.pathname = body.pathname.replace(/([^/]+)$/, ":$1");
 
 		// Wrap single content names passed as string in an array for uniformal handling
 		body.content = !Array.isArray(body.content) ? [body.content] : body.content;
@@ -51,7 +51,7 @@ module.exports = coreInterface => {
 		}
 		
 		if(!existsSync(contentFilePath)) {
-		errorContentFilePath = join(compoundBasePath, `${config.dynamicPageFilePrefix}${404}.html`);
+			const errorContentFilePath = join(compoundBasePath, `${config.dynamicPageFilePrefix}${404}.html`);
 			if(!existsSync(errorContentFilePath)) {
 				throw 404;
 			}

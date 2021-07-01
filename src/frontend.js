@@ -6,8 +6,6 @@ let loadHandlers = {
 	finished: [] 
 };
 
-const CONTENT_NAME_REGEX = new RegExp(`(\\${config.dynamicPageDirPrefix}[a-z0-9_-]+)+(?:($|\\?))`, "i");
-
 // Initialize
 document.addEventListener("DOMContentLoaded", _ => {
 	// Retrieve wrapper element instance
@@ -72,10 +70,8 @@ function load(content, anchor = null, isInitial = false, isHistoryBack = false) 
 			content: content || config.defaultContentName
 		}).then(async res => {
 			if(res.status != 200) {
-				const errorLocation = document.location.pathname.replace(/\/[^/]+$/, `/${res.status}`);
+				window.location.replace(RAPID.core.compoundPage.base);
 				
-				window.location.replace(errorLocation);
-
 				return;
 			}
 			

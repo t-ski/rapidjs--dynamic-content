@@ -34,7 +34,7 @@ Each standalone content fragment is to be organized in its own private file, loc
 
 ### Index
 
-When deploying a content file named *_index.html*, a page root request (URL not stating any particular content name) will result in the index content being loaded into the content wrapper element.
+A file named *_index.html* must be deployed, so a page root request (URL not stating any particular content name) will result in the index content being loaded into the content wrapper element.
 
 ### Placeholder
 
@@ -61,7 +61,7 @@ The dynamic loading should basically replace the ordinary way of loading content
 #### Syntax
 
 ```
-RAPID["dynamic-content"].load(content, anchor = undefined)
+RAPID["@t-ski/dynamic-content"].load(content, anchor = undefined)
 ```
 
 #### Parameter
@@ -76,6 +76,8 @@ RAPID["dynamic-content"].load(content, anchor = undefined)
 
 > When about to load nested content, provide the content levels sequence in an ordered array of the respective names.
 
+> If the requested content does not exist, a content file named *_404.html* on compound page directory root level will be served instead. If no such file exists, the base index content will appear.
+
 ---
 
 ## Load handlers
@@ -89,7 +91,7 @@ The content downloading progress can be intercepted by setting up progress handl
 #### Syntax
 
 ```
-RAPID["dynamic-content"].addProgressHandler(callback, flag = flag.ALWAYS)
+RAPID["@t-ski/dynamic-content"].addProgressHandler(callback, flag = flag.ALWAYS)
 ```
 
 #### Parameter
@@ -107,7 +109,7 @@ When content downloading has successfully finished, finished handlers will be tr
 #### Syntax
 
 ```
-RAPID["dynamic-content"].addFinishedHandler(callback, flag = flag.ALWAYS)
+RAPID["@t-ski/dynamic-content"].addFinishedHandler(callback, flag = flag.ALWAYS)
 ```
 
 #### Parameter
@@ -123,7 +125,7 @@ Using a flag on a load handler will tell the application on when to run the call
 #### Synatx
 
 ```
-RAPID["dynamic-content"].flag.TYPE
+RAPID["@t-ski/dynamic-content"].flag.TYPE
 ```
 
 #### TYPEs
