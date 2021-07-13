@@ -8,7 +8,6 @@ const config = {
 	defaultContentName: "index",
 	dynamicPageDirPrefix: ":",
 	dynamicPageFilePrefix: "_",
-	requestEndpoint: "/_dynamic-content",
 	wrapperElementAttribute: "dynamic-content-wrapper"
 };
 
@@ -17,12 +16,12 @@ const {join} = require("path");
 
 // TODO: Implement markup iterator over all content file idnetifiers (e.g. for displaying buttons)
 
-module.exports = coreInterface => {
+module.exports = rapidJS => {
 	// Initialize feature frontend module
-	coreInterface.initFrontendModule(config, true);
+	rapidJS.initFrontendModule("./frontend", config, rapidJS.page.COMPOUND);
 	
 	// Add POST route to retrieve specific content
-	coreInterface.setRoute("post", config.requestEndpoint, body => {
+	rapidJS.setEndpoint(body => {
 		if(!body.content || (Array.isArray(body.content) && body.content.length == 0)) {
 			body.content = config.defaultContentName;
 		}
@@ -36,7 +35,7 @@ module.exports = coreInterface => {
 		// Wrap single content names passed as string in an array for uniformal handling
 		body.content = !Array.isArray(body.content) ? [body.content] : body.content;
 		
-		const compoundBasePath = join(coreInterface.webPath, body.pathname);
+		const compoundBasePath = join(rapidJS.webPath, body.pathname);
 
 		let contentFilePath = join(compoundBasePath, body.content.slice(0, -1).map(content => `${config.dynamicPageDirPrefix}${content}`).join("/"));
 		const lastContentName = body.content.slice(-1);
@@ -56,9 +55,9 @@ module.exports = coreInterface => {
 				throw 404;
 			}
 
-			return String(coreInterface.applyReader("html", errorContentFilePath));
+			return String(rapidJS.useReader("html", errorContentFilePath));
 		}
 		
-		return String(coreInterface.applyReader("html", contentFilePath));
+		return String(rapidJS.useReader("html", contentFilePath));
 	});
 };

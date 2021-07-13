@@ -1,4 +1,4 @@
-# rapidjs--dynamic-content
+# dynamic-content
 
 <a href="https://rapidjs.org"><img src="https://rapidjs.org/_assets/readme-plugin-badge.svg" height="75"></a>
 
@@ -22,7 +22,7 @@ The plug-in adopts dynamic content loading functionality for compound pages: By 
 
 Any non-singleton element in a compound page base file (in other words: any element that may have child elements) can be the designated content wrapper element; define the empty attribute `rapid--wrapper` upon the respective element.
 
-> A page can not use more than one wrapper element as the loading behaviour correlates with the request URL. When attributing multiple elements only the first element present in the DOM will effective be used as the content wrapper.
+> A page can not use more than one wrapper element as the loading behavior correlates with the request URL. When attributing multiple elements only the first element present in the DOM will effective be used as the content wrapper.
 
 ---
 
@@ -61,7 +61,7 @@ The dynamic loading should basically replace the ordinary way of loading content
 #### Syntax
 
 ```
-RAPID["@t-ski/dynamic-content"].load(content, anchor = undefined)
+rapidJS["@t-ski/rapidjs--dynamic-content"].load(content, anchor = undefined)
 ```
 
 #### Parameter
@@ -91,7 +91,7 @@ The content downloading progress can be intercepted by setting up progress handl
 #### Syntax
 
 ```
-RAPID["@t-ski/dynamic-content"].addProgressHandler(callback, flag = flag.ALWAYS)
+rapidJS["@t-ski/rapidjs--dynamic-content"].addProgressHandler(callback, flag = flag.ALWAYS)
 ```
 
 #### Parameter
@@ -109,7 +109,7 @@ When content downloading has successfully finished, finished handlers will be tr
 #### Syntax
 
 ```
-RAPID["@t-ski/dynamic-content"].addFinishedHandler(callback, flag = flag.ALWAYS)
+rapidJS["@t-ski/rapidjs--dynamic-content"].addFinishedHandler(callback, flag = flag.ALWAYS)
 ```
 
 #### Parameter
@@ -125,7 +125,7 @@ Using a flag on a load handler will tell the application on when to run the call
 #### Synatx
 
 ```
-RAPID["@t-ski/dynamic-content"].flag.TYPE
+rapidJS["@t-ski/rapidjs--dynamic-content"].flag.TYPE
 ```
 
 #### TYPEs

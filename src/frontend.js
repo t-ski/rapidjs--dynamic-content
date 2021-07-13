@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", _ => {
 	runtimeData.wrapper.removeAttribute(config.wrapperElementAttribute);
 	
 	// Make initial load call
-	runtimeData.contentName = RAPID.core.compoundPage.args || [config.defaultContentName];
+	runtimeData.contentName = rapidJS.core.compoundPage.args || [config.defaultContentName];
 
 	history.replaceState(getState(), "", document.location.href);
 	load(runtimeData.contentName, document.location.hash, true);
@@ -58,19 +58,19 @@ function load(content, anchor = null, isInitial = false, isHistoryBack = false) 
 	return new Promise((resolve, reject) => {
 		runtimeData.contentName = content;
 		
-		// Manipulate history object
-		if(!isInitial && !isHistoryBack) {
-			let newPathname = `${RAPID.core.compoundPage.base}/${(content.length == 1 && content[0] == config.defaultContentName) ? "" : content.join("/")}`;
-
-			history.pushState(getState(), "", newPathname);
-		}
-
-		RAPID.core.post(config.requestEndpoint, {
-			pathname: RAPID.core.compoundPage.base,
+		rapidJS.core.useEndpoint({
+			pathname: rapidJS.core.compoundPage.base,
 			content: content || config.defaultContentName
 		}).then(async res => {
+			// Manipulate history object
+			if(!isInitial && !isHistoryBack) {
+				let newPathname = `${rapidJS.core.compoundPage.base}/${(content.length == 1 && content[0] == config.defaultContentName) ? "" : content.join("/")}`;
+
+				history.pushState(getState(), "", newPathname);
+			}
+
 			if(res.status != 200) {
-				window.location.replace(RAPID.core.compoundPage.base);
+				window.location.replace(rapidJS.core.compoundPage.base);	// TODO: Enhance
 				
 				return;
 			}
@@ -98,7 +98,7 @@ function load(content, anchor = null, isInitial = false, isHistoryBack = false) 
 			}
 			
 			runtimeData.wrapper.innerHTML = JSON.parse(new TextDecoder("utf-8").decode(chunksAll));
-			
+						
 			// TODO: How to wait for parsing/rendering complete? => id on last element and iterative check for existence?
 			
 			// Call finished handler with old and new content name
@@ -125,7 +125,7 @@ function load(content, anchor = null, isInitial = false, isHistoryBack = false) 
 			resolve();
 		}).catch(err => {
 			reject(err);
-		});
+		})
 	});
 
 	/**
@@ -136,8 +136,8 @@ function load(content, anchor = null, isInitial = false, isHistoryBack = false) 
 	 */
 	function applyHandlerCallbacks(handler, args, isInitial, isHistoryBack) {
 		(handler || []).forEach(handler => {
-			if(!isHistoryBack && (isInitial && handler.flag == plugin.flag.EVENTUALLY)
-			|| (!isInitial && handler.flag == plugin.flag.INITIALLY)) {
+			if(!isHistoryBack && (isInitial && handler.flag == PUBLIC.flag.EVENTUALLY)
+			|| (!isInitial && handler.flag == PUBLIC.flag.INITIALLY)) {
 				// Ignore if flags compete with load event state
 				return;
 			}
@@ -158,7 +158,7 @@ function load(content, anchor = null, isInitial = false, isHistoryBack = false) 
  * @param {String} [anchor] Anchor to scroll to after load
  * @returns {Promise} Promise resolving on load complete, rejecting on error
  */
-plugin.load = function(content, anchor) {
+PUBLIC.load = function(content, anchor) {
 	return load(content, anchor);
 };
 
@@ -168,7 +168,7 @@ plugin.load = function(content, anchor) {
  * INITIALLY: Only call handler on initial the load
  * EVENTUALLY: Always call handler except for on the initial load
  */
-plugin.flag = {
+PUBLIC.flag = {
 	ALWAYS: 0,
 	INITIALLY: 1,
 	EVENTUALLY: 2
@@ -179,7 +179,7 @@ plugin.flag = {
  * @param {Function} callback Progress callback getting passed a content download progress value [0, 1] for custom loading time handling (e.g. visual feedback)
  * @param {flag} [flag=flag.ALWAYS] Type of handler application (always by default)
  */
-plugin.addProgressHandler = function(callback, flag = plugin.flag.ALWAYS) {
+PUBLIC.addProgressHandler = function(callback, flag = PUBLIC.flag.ALWAYS) {
 	loadHandlers.progress.push({
 		callback: callback,
 		flag: flag
@@ -191,7 +191,7 @@ plugin.addProgressHandler = function(callback, flag = plugin.flag.ALWAYS) {
  * @param {Function} callback Callback getting passed an old and a new content name after successfully having loaded content
  * @param {flag} [flag=flag.ALWAYS] Type of handler application (always by default)
  */
-plugin.addFinishedHandler = function(callback, flag = plugin.flag.ALWAYS) {
+PUBLIC.addFinishedHandler = function(callback, flag = PUBLIC.flag.ALWAYS) {
 	loadHandlers.finished.push({
 		callback: callback,
 		flag: flag
@@ -202,6 +202,6 @@ plugin.addFinishedHandler = function(callback, flag = plugin.flag.ALWAYS) {
  * Get the name of the currently loaded content.
  * @returns {String} Content name
  */
-plugin.content = function() {
+PUBLIC.content = function() {
 	return runtimeData.contentName;
 };
