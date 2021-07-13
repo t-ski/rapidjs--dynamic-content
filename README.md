@@ -125,10 +125,10 @@ Using a flag on a load handler will tell the application on when to run the call
 #### Synatx
 
 ```
-rapidJS["@t-ski/rapidjs--dynamic-content"].flag.TYPE
+rapidJS["@t-ski/rapidjs--dynamic-content"].flag.IDENTIFIER
 ```
 
-#### TYPEs
+#### Identifiers
 
 **ALWAYS** *Always call handler when related event fires (initially and eventually)*
 
