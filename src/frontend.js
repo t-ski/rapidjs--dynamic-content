@@ -125,7 +125,7 @@ function load(content, anchor = null, isInitial = false, isHistoryBack = false) 
 			resolve();
 		}).catch(err => {
 			reject(err);
-		})
+		});
 	});
 
 	/**
