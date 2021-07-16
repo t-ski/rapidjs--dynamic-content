@@ -35,7 +35,7 @@ module.exports = rapidJS => {
 		// Wrap single content names passed as string in an array for uniformal handling
 		body.content = !Array.isArray(body.content) ? [body.content] : body.content;
 		
-		const compoundBasePath = join(rapidJS.webPath, body.pathname);
+		const compoundBasePath = join(rapidJS.utility.webPath, body.pathname);
 
 		let contentFilePath = join(compoundBasePath, body.content.slice(0, -1).map(content => `${config.dynamicPageDirPrefix}${content}`).join("/"));
 		const lastContentName = body.content.slice(-1);
@@ -55,9 +55,9 @@ module.exports = rapidJS => {
 				throw 404;
 			}
 
-			return String(rapidJS.useReader("html", errorContentFilePath));
+			return String(rapidJS.utility.useReader("html", errorContentFilePath));
 		}
 		
-		return String(rapidJS.useReader("html", contentFilePath));
+		return String(rapidJS.utility.useReader("html", contentFilePath));
 	});
 };

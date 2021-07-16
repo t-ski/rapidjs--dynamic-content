@@ -88,7 +88,6 @@ function load(content, anchor = null, isInitial = false, isHistoryBack = false) 
 				receivedLength += curChunk.value.length;
 				chunks.push(curChunk.value);
 			}
-			applyHandlerCallbacks(loadHandlers.progress, [1], isInitial, isHistoryBack);
 
 			let chunksAll = new Uint8Array(receivedLength);
 			let position = 0;
@@ -106,8 +105,7 @@ function load(content, anchor = null, isInitial = false, isHistoryBack = false) 
 				old: runtimeData.contentName,
 				new: content
 			};
-			applyHandlerCallbacks(loadHandlers.finished, [contentNames.old, contentNames.new], isInitial, isHistoryBack);
-			
+
 			// Scroll to anchor if given
 			if(anchor) {
 				const anchorElement = document.querySelector(`#${anchor.replace(/^#/, "")}`);
@@ -121,7 +119,10 @@ function load(content, anchor = null, isInitial = false, isHistoryBack = false) 
 					}
 				}, 50);
 			}
-			
+
+			applyHandlerCallbacks(loadHandlers.progress, [1], isInitial, isHistoryBack);
+			applyHandlerCallbacks(loadHandlers.finished, [contentNames.old, contentNames.new], isInitial, isHistoryBack);
+						
 			resolve();
 		}).catch(err => {
 			reject(err);
