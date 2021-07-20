@@ -135,3 +135,7 @@ rapidJS["@t-ski/rapidjs--dynamic-content"].flag.IDENTIFIER
 **INITIALLY** *Only call handler on initial the load*
 
 **EVENTUALLY** *Always call handler except for on the initial load*
+
+## Best practices
+
+[Deferring placeholder content in order to prevent flicker effect on excellent latency](https://gist.github.com/t-ski/14a1dce4cd403f98f000c554cfeb1747)
