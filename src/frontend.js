@@ -1,9 +1,13 @@
+"use strict";
+
+
 // Reusable runtime runtimeData storage
-let runtimeData = {};
-// Load handler callbacks
-let loadHandlers = {
-	progress: [],
-	finished: [] 
+let runtimeData = {
+	// Load handler callbacks
+	loadHandlers: {
+		progress: [],
+		finished: [] 
+	}
 };
 
 // Initialize
@@ -14,14 +18,9 @@ document.addEventListener("DOMContentLoaded", _ => {
 		// No further action as no wrapper element defined
 		return;
 	}
-
 	runtimeData.wrapper.removeAttribute(config.wrapperElementAttribute);
 	
-	// Make initial load call
-	runtimeData.contentName = rapidJS.core.compoundPage.args || [config.defaultContentName];
-
-	history.replaceState(getState(), "", document.location.href);
-	load(runtimeData.contentName, document.location.hash, true);
+	load(null, document.location.hash, true);
 });
 // Intercept backwards navigation to handle it accordingly
 window.addEventListener("popstate", e => {
@@ -34,7 +33,7 @@ window.addEventListener("popstate", e => {
 });
 
 function getState() {
-	return runtimeData.contentName;
+	return runtimeData.curContent;
 }
 
 /**
@@ -45,67 +44,42 @@ function getState() {
  * @param {Boolean} [isHistoryBack=false] Whethter it is the history back load call
  * @returns {Promise} Resolves empty on success (error if failure)
  */
-function load(content, anchor = null, isInitial = false, isHistoryBack = false) {
+function load(content, anchor, isInitial = false, isHistoryBack = false) {
+	// TODO: Update location pathname => loads based on location
 	if(!runtimeData.wrapper) {
 		console.error("No wrapper element defined");
 
 		return;
 	}
-	
-	content = !Array.isArray(content) ? [content] : content;
-	(content.length > 1 && content.slice(-1) == config.defaultContentName) && content.pop();
-	
+
+	content = Array.isArray(content) ? content : [content];
+
+	// Manipulate history object
+	if(!isInitial && !isHistoryBack) {
+		let parts = document.location.pathname
+		.split(/\//g)
+		.filter(part => {
+			return (part.length > 0 && part != config.defaultContentName);
+		});
+		const contentLength = runtimeData.curContent.filter(content => content != config.defaultContentName).length;
+		parts = (contentLength > 0) ? parts.slice(0, -contentLength) : parts;
+
+		const newPathname = parts.concat(content).join("/");
+		history.pushState(getState(), "", `/${newPathname}`);
+	}
+
 	return new Promise((resolve, reject) => {
-		runtimeData.contentName = content;
-		
-		rapidJS.core.useEndpoint({
-			pathname: rapidJS.core.compoundPage.base,
-			content: content || config.defaultContentName
-		}).then(async res => {
-			// Manipulate history object
-			if(!isInitial && !isHistoryBack) {
-				let newPathname = `${rapidJS.core.compoundPage.base}/${(content.length == 1 && content[0] == config.defaultContentName) ? "" : content.join("/")}`;
-
-				history.pushState(getState(), "", newPathname);
-			}
-
-			if(res.status != 200) {
-				window.location.replace(rapidJS.core.compoundPage.base);	// TODO: Enhance
-				
+		rapidJS.useEndpoint(null, progress => {
+			applyHandlers(runtimeData.loadHandlers.progress, [progress]);
+		}).then(res => {
+			if(!res.data) {
 				return;
 			}
 			
-			// Explicitly download body to handle progress
-			const contentLength = res.headers.get("Content-Length");
-			let receivedLength = 0;
+			runtimeData.wrapper.innerHTML = res.data;
 
-			const reader = res.body.getReader();
-			let chunks = [];
-			let curChunk;
-			while((curChunk = await reader.read()) && !curChunk.done) {
-				applyHandlerCallbacks(loadHandlers.progress, [receivedLength / contentLength], isInitial, isHistoryBack);
-
-				receivedLength += curChunk.value.length;
-				chunks.push(curChunk.value);
-			}
-
-			let chunksAll = new Uint8Array(receivedLength);
-			let position = 0;
-			for(let chunk of chunks) {
-				chunksAll.set(chunk, position);
-				position += chunk.length;
-			}
-			
-			runtimeData.wrapper.innerHTML = JSON.parse(new TextDecoder("utf-8").decode(chunksAll));
-						
 			// TODO: How to wait for parsing/rendering complete? => id on last element and iterative check for existence?
 			
-			// Call finished handler with old and new content name
-			const contentNames = {
-				old: runtimeData.contentName,
-				new: content
-			};
-
 			// Scroll to anchor if given
 			if(anchor) {
 				const anchorElement = document.querySelector(`#${anchor.replace(/^#/, "")}`);
@@ -119,36 +93,31 @@ function load(content, anchor = null, isInitial = false, isHistoryBack = false) 
 					}
 				}, 50);
 			}
-
-			applyHandlerCallbacks(loadHandlers.progress, [1], isInitial, isHistoryBack);
-			applyHandlerCallbacks(loadHandlers.finished, [contentNames.old, contentNames.new], isInitial, isHistoryBack);
-						
+			
+			applyHandlers(runtimeData.loadHandlers.finished, [runtimeData.curContent, res.content]);
+			runtimeData.curContent = res.content;
+			
 			resolve();
 		}).catch(err => {
-			reject(err);
-		});
-	});
-
-	/**
-	 * Apply all set up handlers of a certain type.
-	 * @helper
-	 * @param {Array} handler Handler array reference 
-	 * @param {Array} args Array of arguments to pass to callback
-	 */
-	function applyHandlerCallbacks(handler, args, isInitial, isHistoryBack) {
-		(handler || []).forEach(handler => {
-			if(!isHistoryBack && (isInitial && handler.flag == PUBLIC.flag.EVENTUALLY)
-			|| (!isInitial && handler.flag == PUBLIC.flag.INITIALLY)) {
-				// Ignore if flags compete with load event state
+			reject();
+		}).finally(_ => {
+			if(!isInitial) {
 				return;
 			}
 			
-			try {
-				handler.callback.apply(null, args);
-			} catch(err) {
-				console.error("Error applying a load handler:");
-				console.error(err);
+			history.replaceState(getState(), "", document.location.pathname);
+		});
+	});
+
+	function applyHandlers(handlers, args) {
+		handlers.forEach(handler => {
+			if(!isHistoryBack && (isInitial && handler.flag == PUBLIC.flag.EVENTUALLY)
+			|| (!isInitial && runtimeData.loadHandlers.finished.flag == PUBLIC.flag.INITIALLY)) {
+				// Ignore if flags compete with load event state
+				return;
 			}
+
+			handler.callback.apply(null, args);
 		});
 	}
 }
@@ -181,7 +150,7 @@ PUBLIC.flag = {
  * @param {flag} [flag=flag.ALWAYS] Type of handler application (always by default)
  */
 PUBLIC.addProgressHandler = function(callback, flag = PUBLIC.flag.ALWAYS) {
-	loadHandlers.progress.push({
+	runtimeData.loadHandlers.progress.push({
 		callback: callback,
 		flag: flag
 	});
@@ -189,11 +158,11 @@ PUBLIC.addProgressHandler = function(callback, flag = PUBLIC.flag.ALWAYS) {
 
 /**
  * Add a finished handler.
- * @param {Function} callback Callback getting passed an old and a new content name after successfully having loaded content
+ * @param {Function} callback Callback being executed after successfully having loaded content, getting passed the old and new content array each
  * @param {flag} [flag=flag.ALWAYS] Type of handler application (always by default)
  */
 PUBLIC.addFinishedHandler = function(callback, flag = PUBLIC.flag.ALWAYS) {
-	loadHandlers.finished.push({
+	runtimeData.loadHandlers.finished.push({
 		callback: callback,
 		flag: flag
 	});

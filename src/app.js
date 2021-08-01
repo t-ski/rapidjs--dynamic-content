@@ -11,53 +11,54 @@ const config = {
 	wrapperElementAttribute: "dynamic-content-wrapper"
 };
 
-const {existsSync} = require("fs");
-const {join} = require("path");
+const {join, dirname} = require("path");
 
 // TODO: Implement markup iterator over all content file idnetifiers (e.g. for displaying buttons)
 
 module.exports = rapidJS => {
 	// Initialize feature frontend module
-	rapidJS.initFrontendModule("./frontend", config, rapidJS.page.COMPOUND);
+	rapidJS.initFrontendModule("./frontend", config);
 	
 	// Add POST route to retrieve specific content
-	rapidJS.setEndpoint(body => {
-		if(!body.content || (Array.isArray(body.content) && body.content.length == 0)) {
-			body.content = config.defaultContentName;
-		}
-		if(/^\/$/.test(body.pathname)) {
-			body.pathname += config.defaultContentName;
-		}
+	rapidJS.setEndpoint((_, req) => {
+		const pathname = dirname(req.pathname);	
+		const content = (req.args.length == 0) ? [config.defaultContentName] : req.args;
 		
-		// Tranlsate pathname to internal compound page representation
-		body.pathname = body.pathname.replace(/([^/]+)$/, ":$1");
-
-		// Wrap single content names passed as string in an array for uniformal handling
-		body.content = !Array.isArray(body.content) ? [body.content] : body.content;
+		let contentFilePath = join(pathname, content.slice(0, -1).map(content => `${config.dynamicPageDirPrefix}${content}`).join("/"));
+		const lastContentName = content.slice(-1);
 		
-		const compoundBasePath = join(rapidJS.utility.webPath, body.pathname);
-
-		let contentFilePath = join(compoundBasePath, body.content.slice(0, -1).map(content => `${config.dynamicPageDirPrefix}${content}`).join("/"));
-		const lastContentName = body.content.slice(-1);
-		
-		const subDirectoryPath = join(contentFilePath, `${config.dynamicPageDirPrefix}${lastContentName}`, `${config.dynamicPageFilePrefix}${config.defaultContentName}.html`);
-		if(existsSync(subDirectoryPath)) {
+		// TODO: Use exists method on reader interface once implemented
+		let subDirectoryPath;
+		try {
+			subDirectoryPath = join(contentFilePath, `${config.dynamicPageDirPrefix}${lastContentName}`, `${config.dynamicPageFilePrefix}${config.defaultContentName}.html`);
+			
 			// Found directory to use (index added as is prioritized; ignoring existing content files on same level)
-			contentFilePath = subDirectoryPath;
-		} else {
-			// Use content file as no valid directory found
-			contentFilePath = join(contentFilePath, `${config.dynamicPageFilePrefix}${lastContentName}.html`);
-		}
-		
-		if(!existsSync(contentFilePath)) {
-			const errorContentFilePath = join(compoundBasePath, `${config.dynamicPageFilePrefix}${404}.html`);
-			if(!existsSync(errorContentFilePath)) {
-				throw 404;
-			}
+			return formResponse(rapidJS.readFile(subDirectoryPath));
+		} catch(_) {
+			try {
+				subDirectoryPath = join(contentFilePath, `${config.dynamicPageFilePrefix}${lastContentName}.html`);
 
-			return String(rapidJS.utility.useReader("html", errorContentFilePath));
+				// Use content file as no valid directory found
+				return formResponse(rapidJS.readFile(subDirectoryPath));
+			} catch(_) {
+				subDirectoryPath = join(pathname, `${config.dynamicPageFilePrefix}${404}.html`);
+				
+				let data;
+				try {
+					data = rapidJS.readFile(subDirectoryPath);
+				} catch(_) {
+					// ...
+				}
+				
+				throw new rapidJS.ClientError(404, formResponse(data));
+			}
 		}
-		
-		return String(rapidJS.utility.useReader("html", contentFilePath));
+
+		function formResponse(data) {
+			return {
+				content: content,
+				data: String(data)
+			};
+		}
 	});
 };

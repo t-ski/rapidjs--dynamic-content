@@ -66,13 +66,13 @@ rapidJS["@t-ski/rapidjs--dynamic-content"].load(content, anchor = undefined)
 
 #### Parameter
 
-**content** `String` *Name of content to load*
+**content** `String`            *Name of content to load*
 
-**anchor** `String` `optional` *Anchor to scroll to after load*
+**anchor** `String` `optional`  *Anchor to scroll to after load*
 
 #### Return value
 
-`Promise` *Promise resolving on load complete, rejecting on error*
+`Promise`                       *Promise resolving on successful load (any status), rejecting on request error*
 
 > When about to load nested content, provide the content levels sequence in an ordered array of the respective names.
 
@@ -86,7 +86,7 @@ The plug-in provides a listener interface for acting upon loading processes.
 
 ### Progress handler
 
-The content downloading progress can be intercepted by setting up progress handlers. E.g. for displaying a progress bar.
+The content downloading progress can be intercepted by setting up progress handlers (e.g. for displaying a progress bar).
 
 #### Syntax
 
@@ -96,9 +96,9 @@ rapidJS["@t-ski/rapidjs--dynamic-content"].addProgressHandler(callback, flag = f
 
 #### Parameter
 
-**callback** `Function` *Progress callback getting passed a content download progress value [0, 1] for custom loading time handling (e.g. visual feedback)*
+**callback** `Function`         *Progress callback getting passed a content download progress value [0, 1] for custom loading time handling (e.g. visual feedback)*
 
-**flag** `flag` `optional` *Type of handler application (always by default)*
+**flag** `flag` `optional`      *Type of handler application (always by default)*
 
 ### Finished handler
 
@@ -114,9 +114,9 @@ rapidJS["@t-ski/rapidjs--dynamic-content"].addFinishedHandler(callback, flag = f
 
 #### Parameter
 
-**callback** `Function` *Callback getting passed an old and a new content name after successfully having loaded content*
+**callback** `Function`         *Callback getting passed the old and the new content name after successfully having loaded content*
 
-**flag** `flag` `optional` *Type of handler application (always by default)*
+**flag** `flag` `optional`      *Type of handler application (always by default)*
 
 ### Flags
 
@@ -130,12 +130,12 @@ rapidJS["@t-ski/rapidjs--dynamic-content"].flag.IDENTIFIER
 
 #### Identifiers
 
-**ALWAYS** *Always call handler when related event fires (initially and eventually)*
+**ALWAYS**                      *Always call handler when related event fires (initially and eventually)*
 
-**INITIALLY** *Only call handler on initial the load*
+**INITIALLY**                   *Only call handler on initial the load*
 
-**EVENTUALLY** *Always call handler except for on the initial load*
+**EVENTUALLY**                  *Always call handler except for on the initial load*
 
 ## Best practices
 
-[Deferring placeholder content in order to prevent flicker effect on excellent latency](https://gist.github.com/t-ski/14a1dce4cd403f98f000c554cfeb1747)
+[Deferring placeholder content display in a content wrapper in order to prevent flicker effect on excellent latency](https://gist.github.com/t-ski/14a1dce4cd403f98f000c554cfeb1747)
