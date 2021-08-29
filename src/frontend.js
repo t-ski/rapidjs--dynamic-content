@@ -99,7 +99,7 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 			
 			resolve();
 		}).catch(err => {
-			reject();
+			reject(err);
 		}).finally(_ => {
 			if(!isInitial) {
 				return;
