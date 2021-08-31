@@ -11,8 +11,7 @@ const config = {
 	wrapperElementAttribute: "dynamic-content-wrapper"
 };
 
-const {join, dirname} = require("path");
-const { sub } = require("../../../@rapidjs.org/core/src/support/web-path");
+const {join} = require("path");
 
 // TODO: Implement markup iterator over all content file idnetifiers (e.g. for displaying buttons)
 

@@ -65,7 +65,7 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 		parts = (contentLength > 0) ? parts.slice(0, -contentLength) : parts;
 
 		const newPathname = parts.concat(content).join("/");
-		history.pushState(getState(), "", `/${newPathname}`);
+		history.pushState(getState(), "", `/${newPathname}${document.location.hash || ""}`);
 	}
 
 	return new Promise((resolve, reject) => {
@@ -105,7 +105,7 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 				return;
 			}
 			
-			history.replaceState(getState(), "", document.location.pathname);
+			history.replaceState(getState(), "", `${document.location.pathname}${document.location.hash || ""}`);
 		});
 	});
 
