@@ -57,10 +57,10 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 	// Manipulate history object
 	if(!isInitial && !isHistoryBack) {
 		let parts = document.location.pathname
-		.split(/\//g)
-		.filter(part => {
-			return (part.length > 0 && part != config.defaultContentName);
-		});
+			.split(/\//g)
+			.filter(part => {
+				return (part.length > 0 && part != config.defaultContentName);
+			});
 		const contentLength = runtimeData.curContent.filter(content => content != config.defaultContentName).length;
 		parts = (contentLength > 0) ? parts.slice(0, -contentLength) : parts;
 

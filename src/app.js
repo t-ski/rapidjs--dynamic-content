@@ -41,8 +41,8 @@ module.exports = rapidJS => {
 		subDirectoryPath = join(req.pathname, `${config.dynamicPageFilePrefix}${404}.html`);
 		throw new rapidJS.ClientError(404, formResponse(
 			rapidJS.file.exists(subDirectoryPath)
-			? rapidJS.file.read(subDirectoryPath)
-			: undefined)
+				? rapidJS.file.read(subDirectoryPath)
+				: undefined)
 		);
 			
 		function formResponse(data) {
