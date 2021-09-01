@@ -42,13 +42,13 @@ module.exports = rapidJS => {
 		throw new rapidJS.ClientError(404, formResponse(
 			rapidJS.file.exists(subDirectoryPath)
 				? rapidJS.file.read(subDirectoryPath)
-				: undefined)
+				: null)
 		);
-			
+		
 		function formResponse(data) {
 			return {
 				content: content,
-				data: String(data)
+				data: data ? String(data) : data
 			};
 		}
 	});

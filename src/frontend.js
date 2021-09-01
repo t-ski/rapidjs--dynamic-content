@@ -69,14 +69,30 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 	}
 
 	return new Promise((resolve, reject) => {
+		let successful;
+		let data;
+
 		rapidJS.useEndpoint(null, progress => {
 			applyHandlers(runtimeData.loadHandlers.progress, [progress]);
 		}).then(res => {
-			if(!res.data) {
+			successful = true;
+			data = res;
+		}).catch(res => {
+			if(res instanceof Error) {
+				reject(err);
+
 				return;
 			}
+
+			successful = false;
+			data = res;
+		}).finally(_ => {
+			console.log(data)
+			if(!data.data) {
+				rapidJS.redirectError(404);
+			}
 			
-			runtimeData.wrapper.innerHTML = res.data;
+			runtimeData.wrapper.innerHTML = data.data;
 
 			// TODO: How to wait for parsing/rendering complete? => id on last element and iterative check for existence?
 			
@@ -94,18 +110,18 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 				}, 50);
 			}
 			
-			applyHandlers(runtimeData.loadHandlers.finished, [runtimeData.curContent, res.content]);
-			runtimeData.curContent = res.content;
-			
-			resolve();
-		}).catch(err => {
-			reject(err);
-		}).finally(_ => {
+			applyHandlers(runtimeData.loadHandlers.finished, [runtimeData.curContent, data.content]);
+			runtimeData.curContent = data.content;
+
 			if(!isInitial) {
+				successful ? resolve() : reject();
+
 				return;
 			}
 			
 			history.replaceState(getState(), "", `${document.location.pathname}${document.location.hash || ""}`);
+			
+			successful ? resolve() : reject();
 		});
 	});
 
@@ -116,7 +132,7 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 				// Ignore if flags compete with load event state
 				return;
 			}
-
+			
 			handler.callback.apply(null, args);
 		});
 	}
