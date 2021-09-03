@@ -87,9 +87,10 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 			successful = false;
 			data = res;
 		}).finally(_ => {
-			console.log(data)
 			if(!data.data) {
 				rapidJS.redirectError(404);
+
+				return;
 			}
 			
 			runtimeData.wrapper.innerHTML = data.data;
