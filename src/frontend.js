@@ -79,7 +79,7 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 			data = res;
 		}).catch(res => {
 			if(res instanceof Error) {
-				reject(err);
+				reject(res);
 
 				return;
 			}
