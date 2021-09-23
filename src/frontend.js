@@ -54,6 +54,8 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 
 	content = Array.isArray(content) ? content : [content];
 
+	const curUrl = document.location.href;
+	
 	// Manipulate history object
 	if(!isInitial && !isHistoryBack) {
 		let parts = document.location.pathname
@@ -63,7 +65,7 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 			});
 		const contentLength = runtimeData.curContent.filter(content => content != config.defaultContentName).length;
 		parts = (contentLength > 0) ? parts.slice(0, -contentLength) : parts;
-
+		
 		const newPathname = parts.concat(content).join("/");
 		history.pushState(getState(), "", `/${newPathname}${document.location.hash || ""}`);
 	}
@@ -87,8 +89,10 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 			successful = false;
 			data = res;
 		}).finally(_ => {
-			if(!data.data) {
-				rapidJS.redirectError(404);
+			if(!((data || {}).data)) {
+				(successful === false)
+				? rapidJS.redirectError(404)
+				: history.replaceState(getState(), "", curUrl);
 
 				return;
 			}
@@ -114,14 +118,10 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 			applyHandlers(runtimeData.loadHandlers.finished, [runtimeData.curContent, data.content]);
 			runtimeData.curContent = data.content;
 
-			if(!isInitial) {
-				successful ? resolve() : reject();
-
-				return;
+			if(isInitial) {
+				history.replaceState(getState(), "", `${document.location.pathname}${document.location.hash || ""}`);
 			}
-			
-			history.replaceState(getState(), "", `${document.location.pathname}${document.location.hash || ""}`);
-			
+
 			successful ? resolve() : reject();
 		});
 	});
