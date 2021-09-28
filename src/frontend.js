@@ -98,8 +98,8 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 		}).finally(_ => {
 			if(!((data || {}).data)) {
 				(successful === false)
-				? rapidJS.redirectError(404)
-				: history.replaceState(getState(), "", curUrl);
+					? rapidJS.redirectError(404)
+					: history.replaceState(getState(), "", curUrl);
 
 				return;
 			}
