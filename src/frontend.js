@@ -36,6 +36,13 @@ function getState() {
 	return runtimeData.curContent;
 }
 
+// TODO:
+/* 
+			
+scrollTopInterval = setInterval(_ => {
+	window.scrollTo(0, 0);
+}, 50); */
+
 /**
  * Internal load method.
  * @param {String} content Content name
