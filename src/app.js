@@ -17,7 +17,7 @@ const {join} = require("path");
 module.exports = rapidJS => {
 	// Initialize feature frontend module
 	rapidJS.initFrontendModule("./frontend", config, true);
-	
+
 	// Add POST route to retrieve specific content
 	rapidJS.setEndpoint((_, req) => {
 		const content = (req.compound.args.length == 0) ? [config.defaultContentName] : req.compound.args;
@@ -38,6 +38,7 @@ module.exports = rapidJS => {
 		
 		// 404
 		subDirectoryPath = join(req.pathname, `${config.dynamicPageFilePrefix}${404}.html`);
+
 		throw new rapidJS.ClientError(404, formResponse(
 			rapidJS.file.exists(subDirectoryPath)
 				? rapidJS.file.read(subDirectoryPath)

@@ -73,7 +73,9 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 		const contentLength = runtimeData.curContent.filter(content => content != config.defaultContentName).length;
 		parts = (contentLength > 0) ? parts.slice(0, -contentLength) : parts;
 		
-		const newPathname = parts.concat(content).join("/");
+		const newPathname = parts.concat(content.filter(c => {
+			return c != config.defaultContentName;
+		})).join("/");
 		history.pushState(getState(), "", `/${newPathname}${document.location.hash || ""}`);
 	}
 

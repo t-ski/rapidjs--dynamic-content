@@ -20,7 +20,7 @@ The plug-in adopts dynamic content loading functionality for compound pages: By 
 
 ## Content wrapper
 
-Any non-singleton element in a compound page base file (in other words: any element that may have child elements) can be the designated content wrapper element; define the empty attribute `rapid--wrapper` upon the respective element.
+Any non-singleton element in a compound page base file (in other words: any element that may have child elements) can be the designated content wrapper element; define the empty attribute `dynamic-content-wrapper` upon the respective element.
 
 > A page can not use more than one wrapper element as the loading behavior correlates with the request URL. When attributing multiple elements only the first element present in the DOM will effective be used as the content wrapper.
 
