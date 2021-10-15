@@ -28,7 +28,7 @@ window.addEventListener("popstate", e => {
 		return;
 	}
 	
-	load(e.state, location.hash, false, true);
+	load(e.state, null, false, true);
 	e.preventDefault();
 });
 
@@ -76,7 +76,7 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 		const newPathname = parts.concat(content.filter(c => {
 			return c != config.defaultContentName;
 		})).join("/");
-		history.pushState(getState(), "", `/${newPathname}${document.location.hash || ""}`);
+		history.pushState(getState(), "", `/${newPathname}${document.location.search || ""}`);
 	}
 
 	return new Promise((resolve, reject) => {
@@ -128,7 +128,7 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 			runtimeData.curContent = data.content;
 
 			if(isInitial) {
-				history.replaceState(getState(), "", `${document.location.pathname}${document.location.hash || ""}`);
+				history.replaceState(getState(), "", `${document.location.pathname}${document.location.search || ""}`);
 			}
 
 			successful ? resolve() : reject();
