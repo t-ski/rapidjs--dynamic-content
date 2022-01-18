@@ -1,6 +1,6 @@
 # dynamic-content
 
-<a href="https://rapidjs.org"><img src="https://rapidjs.org/_assets/readme-plugin-badge.svg" height="75"></a>
+<a href="https://rapidjs.org"><img src="https://rapidjs.org/assets/readme-plugin-badge.svg" height="75"></a>
 
 Providing dynamic content loading functionality for compound page environments.
 

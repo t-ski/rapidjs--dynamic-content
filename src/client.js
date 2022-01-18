@@ -1,6 +1,3 @@
-"use strict";
-
-
 // Reusable runtime runtimeData storage
 let runtimeData = {
 	// Load handler callbacks
@@ -10,17 +7,21 @@ let runtimeData = {
 	}
 };
 
+const shared = $this.SHARED;
+
+// TODO: Cache content option (no repeated loading)
+
 // Initialize
 document.addEventListener("DOMContentLoaded", _ => {
 	// Retrieve wrapper element instance
-	runtimeData.wrapper = document.querySelector(`*[${config.wrapperElementAttribute}]`);
+	runtimeData.wrapper = document.querySelector(`*[${shared.wrapperElementAttribute}]`);
 	if(!runtimeData.wrapper) {
 		// No further action as no wrapper element defined
 		return;
 	}
-	runtimeData.wrapper.removeAttribute(config.wrapperElementAttribute);
+	runtimeData.wrapper.removeAttribute(shared.wrapperElementAttribute);
 	
-	load(null, document.location.hash, true);
+	load(null, (document.location.hash.length > 0) ? document.location.hash : false, true);
 });
 // Intercept backwards navigation to handle it accordingly
 window.addEventListener("popstate", e => {
@@ -28,8 +29,9 @@ window.addEventListener("popstate", e => {
 		return;
 	}
 	
-	load(e.state, null, false, true);
 	e.preventDefault();
+	
+	load(e.state, null, false, true);
 });
 
 function getState() {
@@ -46,7 +48,7 @@ scrollTopInterval = setInterval(_ => {
 /**
  * Internal load method.
  * @param {String} content Content name
- * @param {String} [anchor] Anchor to scroll to after load
+ * @param {String} [anchor] Anchor to scroll to after load (top by default, pass false to disable)
  * @param {Boolean} [isInitial=false] Whethter it is the initial load call
  * @param {Boolean} [isHistoryBack=false] Whethter it is the history back load call
  * @returns {Promise} Resolves empty on success (error if failure)
@@ -68,22 +70,22 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 		let parts = document.location.pathname
 			.split(/\//g)
 			.filter(part => {
-				return (part.length > 0 && part != config.defaultContentName);
+				return (part.length > 0 && part != $this.SHARED.defaultContentName);
 			});
-		const contentLength = runtimeData.curContent.filter(content => content != config.defaultContentName).length;
+		const contentLength = runtimeData.curContent.filter(content => content != $this.SHARED.defaultContentName).length;
 		parts = (contentLength > 0) ? parts.slice(0, -contentLength) : parts;
 		
 		const newPathname = parts.concat(content.filter(c => {
-			return c != config.defaultContentName;
+			return c != $this.SHARED.defaultContentName;
 		})).join("/");
 		history.pushState(getState(), "", `/${newPathname}${document.location.search || ""}`);
 	}
-
+	
 	return new Promise((resolve, reject) => {
 		let successful;
 		let data;
 
-		rapidJS.useEndpoint(null, progress => {
+		$this.endpoint(null, progress => {
 			applyHandlers(runtimeData.loadHandlers.progress, [progress]);
 		}).then(res => {
 			successful = true;
@@ -94,13 +96,13 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 
 				return;
 			}
-
+			
 			successful = false;
 			data = res;
 		}).finally(_ => {
 			if(!((data || {}).data)) {
 				(successful === false)
-					? rapidJS.redirectError(404)
+					? console.log(404)//(document.location.href = "/")	// TODO: 404
 					: history.replaceState(getState(), "", curUrl);
 
 				return;
@@ -110,21 +112,46 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 
 			// TODO: How to wait for parsing/rendering complete? => id on last element and iterative check for existence?
 			
-			// Scroll to anchor if given
-			if(anchor) {
-				const anchorElement = document.querySelector(`#${anchor.replace(/^#/, "")}`);
+			// Scroll behavior
+			const tolerantScroll = callback => {
+				document.body.style.overflow = "hidden";	// TODO: Only if not already set?
 
 				let i = 0;
 				const anchorScrollInterval = setInterval(_ => {
-					anchorElement.scrollIntoView();
+					callback();
+
 					i++;
-					if(i >= 10) {
+					if(i >= 15) {
 						clearInterval(anchorScrollInterval);
+
+						document.body.style.removeProperty("overflow");
 					}
-				}, 50);
+				}, 5);
+			};
+
+			switch(anchor) {
+			case false:
+				// Disabled
+				break;
+			case undefined:
+				// Top
+				tolerantScroll(_ => {
+					window.scrollTo(0, 0);
+				});
+
+				break;
+			default: {
+				// Anchor hash
+				const anchorElement = document.querySelector(`#${anchor.replace(/^#/, "")}`);
+				tolerantScroll(_ => {
+					anchorElement.scrollIntoView();
+				});
+
+				break;
 			}
-			
-			applyHandlers(runtimeData.loadHandlers.finished, [runtimeData.curContent, data.content]);
+			}
+
+			applyHandlers(runtimeData.loadHandlers.finished, data.content);
 			runtimeData.curContent = data.content;
 
 			if(isInitial) {
@@ -137,13 +164,13 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 
 	function applyHandlers(handlers, args) {
 		handlers.forEach(handler => {
-			if(!isHistoryBack && (isInitial && handler.flag == PUBLIC.flag.EVENTUALLY)
-			|| (!isInitial && runtimeData.loadHandlers.finished.flag == PUBLIC.flag.INITIALLY)) {
+			if(!isHistoryBack && (isInitial && handler.flag == $this.PUBLIC.flag.EVENTUALLY)
+			|| (!isInitial && runtimeData.loadHandlers.finished.flag == $this.PUBLIC.flag.INITIALLY)) {
 				// Ignore if flags compete with load event state
 				return;
 			}
-			
-			handler.callback.apply(null, args);
+
+			handler.callback.call(null, args);
 		});
 	}
 }
@@ -151,10 +178,15 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 /**
  * Load markup into the designated wrapper element
  * @param {String} content Name of content to load
- * @param {String} [anchor] Anchor to scroll to after load
+ * @param {String|Boolean} [anchor] Anchor to scroll to after load (top by default, pass false to disable)
  * @returns {Promise} Promise resolving on load complete, rejecting on error
  */
-PUBLIC.load = function(content, anchor) {
+$this.PUBLIC.load = function(content, anchor) {
+	/* if(	// $this.SHARED.noLocalReload
+	&& content == runtimeData.curContent) {
+		return;
+	} */
+
 	return load(content, anchor);
 };
 
@@ -164,7 +196,7 @@ PUBLIC.load = function(content, anchor) {
  * INITIALLY: Only call handler on initial the load
  * EVENTUALLY: Always call handler except for on the initial load
  */
-PUBLIC.flag = {
+$this.PUBLIC.flag = {
 	ALWAYS: 0,
 	INITIALLY: 1,
 	EVENTUALLY: 2
@@ -175,7 +207,7 @@ PUBLIC.flag = {
  * @param {Function} callback Progress callback getting passed a content download progress value [0, 1] for custom loading time handling (e.g. visual feedback)
  * @param {flag} [flag=flag.ALWAYS] Type of handler application (always by default)
  */
-PUBLIC.addProgressHandler = function(callback, flag = PUBLIC.flag.ALWAYS) {
+$this.PUBLIC.addProgressHandler = function(callback, flag = $this.PUBLIC.flag.ALWAYS) {
 	runtimeData.loadHandlers.progress.push({
 		callback: callback,
 		flag: flag
@@ -187,7 +219,7 @@ PUBLIC.addProgressHandler = function(callback, flag = PUBLIC.flag.ALWAYS) {
  * @param {Function} callback Callback being executed after successfully having loaded content, getting passed the old and new content array each
  * @param {flag} [flag=flag.ALWAYS] Type of handler application (always by default)
  */
-PUBLIC.addFinishedHandler = function(callback, flag = PUBLIC.flag.ALWAYS) {
+$this.PUBLIC.addFinishedHandler = function(callback, flag = $this.PUBLIC.flag.ALWAYS) {
 	runtimeData.loadHandlers.finished.push({
 		callback: callback,
 		flag: flag
@@ -198,6 +230,6 @@ PUBLIC.addFinishedHandler = function(callback, flag = PUBLIC.flag.ALWAYS) {
  * Get the name of the currently loaded content.
  * @returns {String} Content name
  */
-PUBLIC.content = function() {
-	return runtimeData.contentName;
+$this.PUBLIC.content = function() {
+	return runtimeData.curContent;
 };

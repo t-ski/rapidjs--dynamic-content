@@ -15,11 +15,11 @@ const {join} = require("path");
 // TODO: Implement markup iterator over all content file idnetifiers (e.g. for displaying buttons)
 
 module.exports = rapidJS => {
-	// Initialize feature frontend module
-	rapidJS.initFrontendModule("./frontend", config, true);
+	// Initialize feature client module
+	$this.clientModule("./client", config, true);
 
-	// Add POST route to retrieve specific content
-	rapidJS.setEndpoint((_, req) => {
+	// Add endpoint for content retrieval
+	$this.endpoint((_, req) => {
 		const content = (req.compound.args.length == 0) ? [config.defaultContentName] : req.compound.args;
 		const contentFilePath = join(req.pathname, content.slice(0, -1).map(content => `${config.dynamicPageFilePrefix}${content}`).join("/"));
 		const lastContentName = content.slice(-1);
@@ -29,7 +29,7 @@ module.exports = rapidJS => {
 			// Found directory to use (index added as is prioritized; ignoring existing content files on same level)
 			return formResponse(rapidJS.file.read(subDirectoryPath));
 		}
-
+		
 		subDirectoryPath = join(contentFilePath, `${config.dynamicPageFilePrefix}${lastContentName}.html`);
 		if(rapidJS.file.exists(subDirectoryPath)) {
 			// Use content file as no valid directory found
@@ -38,7 +38,6 @@ module.exports = rapidJS => {
 		
 		// 404
 		subDirectoryPath = join(req.pathname, `${config.dynamicPageFilePrefix}${404}.html`);
-
 		throw new rapidJS.ClientError(404, formResponse(
 			rapidJS.file.exists(subDirectoryPath)
 				? rapidJS.file.read(subDirectoryPath)
