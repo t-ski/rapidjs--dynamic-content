@@ -1,29 +1,33 @@
-// Reusable runtime runtimeData storage
-let runtimeData = {
-	// Load handler callbacks
-	loadHandlers: {
-		progress: [],
-		finished: [] 
-	}
+const config = {
+	wrapperElementAttribute: "dynamic-content-wrapper"
 };
 
-const shared = $this.SHARED;
-
-// TODO: Cache content option (no repeated loading)
 
 // Initialize
 document.addEventListener("DOMContentLoaded", _ => {
-	// Retrieve wrapper element instance
-	runtimeData.wrapper = document.querySelector(`*[${shared.wrapperElementAttribute}]`);
-	if(!runtimeData.wrapper) {
-		// No further action as no wrapper element defined
-		return;
+	runtime.wrapper = document.querySelector(`*[${config.wrapperElementAttribute}]`);
+
+	if(!runtime.wrapper) {
+		// No wrapper element defined
+		throw new ReferenceError(`No dynamic content wrapper defined (to be attributed '${config.wrapperElementAttribute}')`);
 	}
-	runtimeData.wrapper.removeAttribute(shared.wrapperElementAttribute);
 	
-	load(null, (document.location.hash.length > 0) ? document.location.hash : false, true);
+	runtime.placeholder = runtime.wrapper.children;
+
+	// Hide attribute as has been consumed (no further need)
+	runtime.wrapper.removeAttribute(config.wrapperElementAttribute);
+
+	// Initially request page information
+	$this.namedEndpoint("initial")
+	.then(res => {
+		runtime.base =  res.base;
+
+		// Initial load
+		load(res.content, (document.location.hash.length > 0) ? document.location.hash : false, true);
+	});
 });
-// Intercept backwards navigation to handle it accordingly
+
+// Intercept backwards navigation
 window.addEventListener("popstate", e => {
 	if(!e.state) {
 		return;
@@ -34,146 +38,149 @@ window.addEventListener("popstate", e => {
 	load(e.state, null, false, true);
 });
 
-function getState() {
-	return runtimeData.curContent;
+
+/**
+ * Runtime variables storage object.
+ */
+const runtime = {
+	// Current content
+	content: null,
+	// Base URL / page path
+	base: null,
+	// Wrapper element reference (to be retrieved once DOM content has loaded)
+	wrapper: null,
+	// Placeholder elements (initial wrapper children) (for manual unloads)
+	placeholder: null,
+	// Load handler callbacks
+	eventListeners: {
+		complete: [],	// Fires upon content loading process completion
+		progress: [],	// Fires upon registered content loading process progress
+	}
+};
+
+
+/**
+ * Enumeration representing application flags (depending on content loading events):
+ * ALWAYS: Always invoke handler (initially and eventually)
+ * INITIALLY: Only call handler on the initial, implicitly performed load event
+ * EVENTUALLY: Only call handler on future, manually induced load events
+ */
+ const flag = {
+	ALWAYS: 0,
+	INITIALLY: 1,
+	EVENTUALLY: 2
 }
 
-// TODO:
-/* 
-			
-scrollTopInterval = setInterval(_ => {
-	window.scrollTo(0, 0);
-}, 50); */
+
+/**
+ * Dispatch a content loading event.
+ */
+function dispatchLoadEvent(event, isInitial = false, ...args) {
+	(runtime.eventListeners[event] || [])
+	.filter(listener => {
+		if((listener.flag == flag.ALWAYS)
+		|| (isInitial != (listener.flag == flag.INITIALLY))) {
+			return false;
+		}
+
+		return true;
+	})
+	.forEach(listener => {
+		listener.callback.call(null, args);
+	});
+}
+
+/**
+ * Perform action with (unregistered) post-render tolerance (epsilon interval).
+ * Supposed for application to scroll behavior.
+ * @param {Function} callback Function to call for each interval step
+ */
+ function tolerantCallback(callback) {
+	document.body.style.overflow = "hidden";
+	
+	let i = 0;
+	const anchorScrollInterval = setInterval(_ => {
+		callback();
+
+		i++;
+		if(i >= 15) {
+			clearInterval(anchorScrollInterval);
+
+			document.body.style.removeProperty("overflow");	// TODO: Only if not defined explicitly (reset accordingly)?
+		}
+	}, 5);
+}
 
 /**
  * Internal load method.
- * @param {String} content Content name
+ * @param {String|String[]} content Content name(s). Give as string if is single name or as string array if is nested.
  * @param {String} [anchor] Anchor to scroll to after load (top by default, pass false to disable)
  * @param {Boolean} [isInitial=false] Whethter it is the initial load call
  * @param {Boolean} [isHistoryBack=false] Whethter it is the history back load call
  * @returns {Promise} Resolves empty on success (error if failure)
  */
 function load(content, anchor, isInitial = false, isHistoryBack = false) {
-	// TODO: Update location pathname => loads based on location
-	if(!runtimeData.wrapper) {
-		console.error("No wrapper element defined");
-
-		return;
-	}
-
+	// Normalize content arguemnt to array representation
 	content = Array.isArray(content) ? content : [content];
+	
+	let data, isSuccessful;
 
-	const curUrl = document.location.href;
-	
-	// Manipulate history object
-	if(!isInitial && !isHistoryBack) {
-		let parts = document.location.pathname
-			.split(/\//g)
-			.filter(part => {
-				return (part.length > 0 && part != $this.SHARED.defaultContentName);
-			});
-		const contentLength = runtimeData.curContent.filter(content => content != $this.SHARED.defaultContentName).length;
-		parts = (contentLength > 0) ? parts.slice(0, -contentLength) : parts;
-		
-		const newPathname = parts.concat(content.filter(c => {
-			return c != $this.SHARED.defaultContentName;
-		})).join("/");
-		history.pushState(getState(), "", `/${newPathname}${document.location.search || ""}`);
-	}
-	
 	return new Promise((resolve, reject) => {
-		let successful;
-		let data;
-
-		$this.endpoint(null, progress => {
-			applyHandlers(runtimeData.loadHandlers.progress, [progress]);
-		}).then(res => {
-			successful = true;
+		$this.endpoint(content, progress => {
+			// Continuously dipatch progress event upon each registered step
+			dispatchLoadEvent("progress", progress);
+		})
+		.then(res => {
+			// Success => Expected content data
 			data = res;
-		}).catch(res => {
+			isSuccessful = true;
+		})
+		.catch(res => {
 			if(res instanceof Error) {
 				reject(res);
 
 				return;
 			}
-			
-			successful = false;
-			data = res;
-		}).finally(_ => {
-			if(!((data || {}).data)) {
-				(successful === false)
-					? console.log(404)//(document.location.href = "/")	// TODO: 404
-					: history.replaceState(getState(), "", curUrl);
 
+			// Failure => Failure content data
+			data = res;
+			isSuccessful = false;
+		})
+		.finally(_ => {
+			// Insert content into designated wrapper
+			runtime.wrapper.innerHTML = data || "";
+
+			// Scroll behavior
+			tolerantCallback(_ => {
+				if(anchor === false) {
+					// No scroll adjustments
+					return;
+				}
+				if(anchor === undefined) {
+					// Scroll to top (default behavior)
+					window.scrollTo(0, 0);
+
+					return;
+				}
+
+				// Scroll to provided anchor
+				const anchorElement = document.querySelector(`#${anchor.replace(/^#/, "")}`);
+				anchorElement && anchorElement.scrollIntoView();
+			});
+			
+			// Manipulate history object if is irregularly motivated loading
+			!isHistoryBack
+			&& history[`${isInitial ? "replace" : "push"}State`](runtime.content, "", `${runtime.base}/${content.join("/")}${document.location.search || ""}`);
+
+			// Fulfill promise according to content existence
+			if(isSuccessful === undefined) {
 				return;
 			}
-			
-			runtimeData.wrapper.innerHTML = data.data;
-
-			// TODO: How to wait for parsing/rendering complete? => id on last element and iterative check for existence?
-			
-			// Scroll behavior
-			const tolerantScroll = callback => {
-				document.body.style.overflow = "hidden";	// TODO: Only if not already set?
-
-				let i = 0;
-				const anchorScrollInterval = setInterval(_ => {
-					callback();
-
-					i++;
-					if(i >= 15) {
-						clearInterval(anchorScrollInterval);
-
-						document.body.style.removeProperty("overflow");
-					}
-				}, 5);
-			};
-
-			switch(anchor) {
-			case false:
-				// Disabled
-				break;
-			case undefined:
-				// Top
-				tolerantScroll(_ => {
-					window.scrollTo(0, 0);
-				});
-
-				break;
-			default: {
-				// Anchor hash
-				const anchorElement = document.querySelector(`#${anchor.replace(/^#/, "")}`);
-				tolerantScroll(_ => {
-					anchorElement.scrollIntoView();
-				});
-
-				break;
-			}
-			}
-
-			applyHandlers(runtimeData.loadHandlers.finished, data.content);
-			runtimeData.curContent = data.content;
-
-			if(isInitial) {
-				history.replaceState(getState(), "", `${document.location.pathname}${document.location.search || ""}`);
-			}
-
-			successful ? resolve() : reject();
+			isSuccessful ? resolve() : reject();
 		});
 	});
-
-	function applyHandlers(handlers, args) {
-		handlers.forEach(handler => {
-			if(!isHistoryBack && (isInitial && handler.flag == $this.PUBLIC.flag.EVENTUALLY)
-			|| (!isInitial && runtimeData.loadHandlers.finished.flag == $this.PUBLIC.flag.INITIALLY)) {
-				// Ignore if flags compete with load event state
-				return;
-			}
-
-			handler.callback.call(null, args);
-		});
-	}
 }
+
 
 /**
  * Load markup into the designated wrapper element
@@ -183,46 +190,52 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
  */
 $this.PUBLIC.load = function(content, anchor) {
 	/* if(	// $this.SHARED.noLocalReload
-	&& content == runtimeData.curContent) {
+	&& content == runtime.curContent) {
 		return;
 	} */
 
 	return load(content, anchor);
 };
 
-/**
- * Enumeration representing load type flags:
- * ALWAYS: Always call handler when related event fires (initially and eventually)
- * INITIALLY: Only call handler on initial the load
- * EVENTUALLY: Always call handler except for on the initial load
- */
-$this.PUBLIC.flag = {
-	ALWAYS: 0,
-	INITIALLY: 1,
-	EVENTUALLY: 2
-};
+$this.PUBLIC.flag = flag;
 
 /**
- * Add a progress handler.
- * @param {Function} callback Progress callback getting passed a content download progress value [0, 1] for custom loading time handling (e.g. visual feedback)
- * @param {flag} [flag=flag.ALWAYS] Type of handler application (always by default)
+ * Add a content loading event handler.
+ * @param {string} type Handler type {"complete", "progress"}
+ * @param {Function} callback Handler callback
+ * @param {flag} [flag=flag.ALWAYS] When to apply the handler (always by default, see flags)
  */
-$this.PUBLIC.addProgressHandler = function(callback, flag = $this.PUBLIC.flag.ALWAYS) {
-	runtimeData.loadHandlers.progress.push({
-		callback: callback,
-		flag: flag
+$this.PUBLIC.addLoadListener = (event, callback, flag = $this.PUBLIC.flag.ALWAYS) => {
+	event = event.toLowerCase();
+
+	if(!runtime.eventListeners[event]) {
+		// Invalid load event
+		throw new SyntaxError(`Invalid load event '${event}'`);
+	}
+
+	runtime.eventListeners[event].push({
+		callback,
+		flag
 	});
 };
 
+// Backwards compatible explicit handler binding functions
+// TODO: Deprecate mid-term
+$this.PUBLIC.addProgressHandler = (callback, flag = $this.PUBLIC.flag.ALWAYS) => {
+	$this.PUBLIC.addLoadListener("progress", callback, flag);
+};
+$this.PUBLIC.addFinishedHandler = (callback, flag = $this.PUBLIC.flag.ALWAYS) => {
+	$this.PUBLIC.addLoadListener("complete", callback, flag);
+};
+
 /**
- * Add a finished handler.
- * @param {Function} callback Callback being executed after successfully having loaded content, getting passed the old and new content array each
- * @param {flag} [flag=flag.ALWAYS] Type of handler application (always by default)
+ * Clear the content wrapper (re-deploy placeholder).
  */
-$this.PUBLIC.addFinishedHandler = function(callback, flag = $this.PUBLIC.flag.ALWAYS) {
-	runtimeData.loadHandlers.finished.push({
-		callback: callback,
-		flag: flag
+$this.PUBLIC.clear = () => {
+	runtime.wrapper.innerHTML = "";
+
+	runtime.placeholder.forEach(child => {
+		runtime.wrapper.appendChild(child);
 	});
 };
 
@@ -231,5 +244,5 @@ $this.PUBLIC.addFinishedHandler = function(callback, flag = $this.PUBLIC.flag.AL
  * @returns {String} Content name
  */
 $this.PUBLIC.content = function() {
-	return runtimeData.curContent;
+	return runtime.curContent;
 };

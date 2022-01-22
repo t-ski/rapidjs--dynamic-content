@@ -1,5 +1,7 @@
 # dynamic-content
 
+!!! SCROLL BEHAVIOR
+
 <a href="https://rapidjs.org"><img src="https://rapidjs.org/assets/readme-plugin-badge.svg" height="75"></a>
 
 Providing dynamic content loading functionality for compound page environments.
