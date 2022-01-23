@@ -33,9 +33,7 @@ window.addEventListener("popstate", e => {
 		return;
 	}
 	
-	e.preventDefault();
-
-	load(e.state, null, false, true);
+	load(e.state, false, false, true);
 });
 
 
@@ -91,27 +89,6 @@ function dispatchLoadEvent(event, isInitial = false, ...args) {
 }
 
 /**
- * Perform action with (unregistered) post-render tolerance (epsilon interval).
- * Supposed for application to scroll behavior.
- * @param {Function} callback Function to call for each interval step
- */
- function tolerantCallback(callback) {
-	document.body.style.overflow = "hidden";
-	
-	let i = 0;
-	const anchorScrollInterval = setInterval(_ => {
-		callback();
-
-		i++;
-		if(i >= 15) {
-			clearInterval(anchorScrollInterval);
-
-			document.body.style.removeProperty("overflow");	// TODO: Only if not defined explicitly (reset accordingly)?
-		}
-	}, 5);
-}
-
-/**
  * Internal load method.
  * @param {String|String[]} content Content name(s). Give as string if is single name or as string array if is nested.
  * @param {String} [anchor] Anchor to scroll to after load (top by default, pass false to disable)
@@ -151,22 +128,14 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 			runtime.wrapper.innerHTML = data || "";
 
 			// Scroll behavior
-			tolerantCallback(_ => {
-				if(anchor === false) {
-					// No scroll adjustments
-					return;
-				}
-				if(!anchor) {
-					// Scroll to top (default behavior)
-					window.scrollTo(0, 0);
-
-					return;
-				}
-
+			if(anchor !== false && !anchor) {
+				// Scroll to top (default behavior)
+				window.scrollTo(0, 0);
+			} else {
 				// Scroll to provided anchor
 				const anchorElement = document.querySelector(`#${anchor.replace(/^#/, "")}`);
 				anchorElement && anchorElement.scrollIntoView();
-			});
+			}
 			
 			// Manipulate history object if is irregularly motivated loading
 			!isHistoryBack
