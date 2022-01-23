@@ -17,10 +17,11 @@ const {join} = require("path");
 
 module.exports = rapidJS => {
 	// Initialize feature client module
-	$this.clientModule("./client", config, true);
+	$this.clientModule("./client", {
+		defaultContentName: config.defaultContentName
+	}, true);
 
 	$this.namedEndpoint("initial", (_, req) => {
-		console.log(req)
 		return {
 			base: req.compound.base,
 			content: req.compound.args
@@ -31,7 +32,7 @@ module.exports = rapidJS => {
 	$this.endpoint((content, req) => {
 		// Append requested content by default content name if not yet given (nested priority)
 		([config.defaultContentName, ""].includes((content || [""]).slice(-1)))
-		&& (content = content.slice(0, -1));
+		&& (content.pop());
 		content.push(config.defaultContentName);
 
 		// Look for according content file:
@@ -43,10 +44,12 @@ module.exports = rapidJS => {
 			if(data) {
 				return data;
 			}
+
+			content = content.slice(0, -1);
 		}
 
 		// 2. Direct
-		data = retrieveContent(content.slice(0, -1));
+		data = retrieveContent(content);
 		if(data) {
 			return data;
 		}
@@ -62,15 +65,16 @@ module.exports = rapidJS => {
 		 */
 		function retrieveContent(contentSequence) {
 			// Dynamic page file prefix (last index, length based on arg)
-			const prefixNormalizedContent = contentSequence.slice(0, -2)
-			.concat(contentSequence.slice(-2)
-				.map(content => `${config.dynamicPageFilePrefix}${content}`));
+			const normalizeContentSequence = [].concat(contentSequence);
+			for(let i = Math.min(2, normalizeContentSequence.length) - 1; i >= 0; i--) {
+				normalizeContentSequence[i] = `${config.dynamicPageFilePrefix}${normalizeContentSequence[i]}`;
+			}
+
 			// Dynamic page file extension (last index)
-			prefixNormalizedContent[prefixNormalizedContent.length - 1] += config.dynamicPageFileExtension;
+			normalizeContentSequence.push(normalizeContentSequence.pop() + config.dynamicPageFileExtension);
 
 			// Respective dynamic page file path
-			const contentFilePath = join(req.pathname, prefixNormalizedContent.join("/"));
-			console.log(contentFilePath)
+			const contentFilePath = join(req.pathname, normalizeContentSequence.join("/"));
 
 			if(rapidJS.file.exists(contentFilePath)) {
 				return rapidJS.file.read(contentFilePath);

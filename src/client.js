@@ -34,7 +34,7 @@ window.addEventListener("popstate", e => {
 	}
 	
 	e.preventDefault();
-	
+
 	load(e.state, null, false, true);
 });
 
@@ -79,14 +79,14 @@ function dispatchLoadEvent(event, isInitial = false, ...args) {
 	(runtime.eventListeners[event] || [])
 	.filter(listener => {
 		if((listener.flag == flag.ALWAYS)
-		|| (isInitial != (listener.flag == flag.INITIALLY))) {
-			return false;
+		|| (isInitial == (listener.flag == flag.INITIALLY))) {
+			return true;
 		}
 
-		return true;
+		return false;
 	})
 	.forEach(listener => {
-		listener.callback.call(null, args);
+		listener.callback.apply(null, args);
 	});
 }
 
@@ -128,7 +128,7 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 	return new Promise((resolve, reject) => {
 		$this.endpoint(content, progress => {
 			// Continuously dipatch progress event upon each registered step
-			dispatchLoadEvent("progress", progress);
+			dispatchLoadEvent("progress", isInitial, progress);
 		})
 		.then(res => {
 			// Success => Expected content data
@@ -156,7 +156,7 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 					// No scroll adjustments
 					return;
 				}
-				if(anchor === undefined) {
+				if(!anchor) {
 					// Scroll to top (default behavior)
 					window.scrollTo(0, 0);
 
@@ -170,13 +170,15 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 			
 			// Manipulate history object if is irregularly motivated loading
 			!isHistoryBack
-			&& history[`${isInitial ? "replace" : "push"}State`](runtime.content, "", `${runtime.base}/${content.join("/")}${document.location.search || ""}`);
+			&& history[`${isInitial ? "replace" : "push"}State`](content, "", `${runtime.base}${("/" + content.join("/")).replace(new RegExp(`/(${$this.SHARED.defaultContentName})?$`, "i"), "")}${document.location.search || ""}`);
 
 			// Fulfill promise according to content existence
 			if(isSuccessful === undefined) {
 				return;
 			}
 			isSuccessful ? resolve() : reject();
+
+			dispatchLoadEvent("complete", isInitial, content);
 		});
 	});
 }
