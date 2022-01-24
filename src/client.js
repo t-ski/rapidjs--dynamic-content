@@ -11,19 +11,18 @@ document.addEventListener("DOMContentLoaded", _ => {
 		// No wrapper element defined
 		throw new ReferenceError(`No dynamic content wrapper defined (to be attributed '${config.wrapperElementAttribute}')`);
 	}
-	
-	runtime.placeholder = runtime.wrapper.children;
 
-	// Hide attribute as has been consumed (no further need)
-	runtime.wrapper.removeAttribute(config.wrapperElementAttribute);
+	runtime.placeholder = Array.from(runtime.wrapper.children);
 
 	// Initially request page information
 	$this.namedEndpoint("initial")
 	.then(res => {
-		runtime.base =  res.base;
+		runtime.base = res.base;
+		runtime.content = res.content;
 
 		// Initial load
-		load(res.content, (document.location.hash.length > 0) ? document.location.hash : false, true);
+		load(res.content, (document.location.hash.length > 0) ? document.location.hash : false, true)
+		.catch(_ => {});	// No thrown error on intitial 404
 	});
 });
 
@@ -89,6 +88,27 @@ function dispatchLoadEvent(event, isInitial = false, ...args) {
 }
 
 /**
+ * Perform action with (unregistered) post-render tolerance (epsilon interval).
+ * Supposed for application to scroll behavior.
+ * @param {Function} callback Function to call for each interval step
+ */
+ function tolerantCallback(callback) {
+	document.body.style.overflow = "hidden";
+	
+	let i = 0;
+	const anchorScrollInterval = setInterval(_ => {
+		callback();
+
+		i++;
+		if(i >= 5) {
+			clearInterval(anchorScrollInterval);
+
+			document.body.style.removeProperty("overflow");	// TODO: Only if not defined explicitly (reset accordingly)?
+		}
+	}, 2.5);
+}
+
+/**
  * Internal load method.
  * @param {String|String[]} content Content name(s). Give as string if is single name or as string array if is nested.
  * @param {String} [anchor] Anchor to scroll to after load (top by default, pass false to disable)
@@ -97,11 +117,22 @@ function dispatchLoadEvent(event, isInitial = false, ...args) {
  * @returns {Promise} Resolves empty on success (error if failure)
  */
 function load(content, anchor, isInitial = false, isHistoryBack = false) {
-	// Normalize content arguemnt to array representation
-	content = Array.isArray(content) ? content : [content];
-	
-	let data, isSuccessful;
+	// Normalize content argument to array representation
+	content = Array.isArray(content) ? content : (content ? [content] : []);
+	const last = content.pop() || "";
+	content.push(last.length == 0 ? $this.SHARED.defaultContentName : last);
+	// Name syntax check
+	content = content.map(c => {
+		c = c.trim().toLowerCase();
+		
+		if(!/^[a-z_][a-z0-9_-]*$/.test(c)) {
+			throw new SyntaxError(`Invalid content name '${c}'`);
+		}
 
+		return c;
+	});
+
+	let data, isSuccessful;
 	return new Promise((resolve, reject) => {
 		$this.endpoint(content, progress => {
 			// Continuously dipatch progress event upon each registered step
@@ -128,14 +159,18 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 			runtime.wrapper.innerHTML = data || "";
 
 			// Scroll behavior
-			if(anchor !== false && !anchor) {
-				// Scroll to top (default behavior)
-				window.scrollTo(0, 0);
-			} else {
+			(anchor !== false) && tolerantCallback(_ => {
+				if(!anchor) {
+					// Scroll to top (default behavior)
+					window.scrollTo(0, 0);
+
+					return;
+				}
+				
 				// Scroll to provided anchor
 				const anchorElement = document.querySelector(`#${anchor.replace(/^#/, "")}`);
 				anchorElement && anchorElement.scrollIntoView();
-			}
+			});
 			
 			// Manipulate history object if is irregularly motivated loading
 			!isHistoryBack
@@ -145,7 +180,7 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 			if(isSuccessful === undefined) {
 				return;
 			}
-			isSuccessful ? resolve() : reject();
+			isSuccessful ? resolve(content) : reject();
 
 			dispatchLoadEvent("complete", isInitial, content);
 		});
@@ -204,16 +239,8 @@ $this.PUBLIC.addFinishedHandler = (callback, flag = $this.PUBLIC.flag.ALWAYS) =>
  */
 $this.PUBLIC.clear = () => {
 	runtime.wrapper.innerHTML = "";
-
+	console.log(runtime.placeholder)
 	runtime.placeholder.forEach(child => {
 		runtime.wrapper.appendChild(child);
 	});
-};
-
-/**
- * Get the name of the currently loaded content.
- * @returns {String} Content name
- */
-$this.PUBLIC.content = function() {
-	return runtime.curContent;
 };
