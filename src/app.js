@@ -25,7 +25,7 @@ module.exports = rapidJS => {
 		return {
 			base: req.compound.base,
 			content: req.compound.args
-		}
+		};
 	});
 
 	// Add endpoint for content retrieval

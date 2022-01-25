@@ -16,14 +16,14 @@ document.addEventListener("DOMContentLoaded", _ => {
 
 	// Initially request page information
 	$this.namedEndpoint("initial")
-	.then(res => {
-		runtime.base = res.base;
-		runtime.content = res.content;
+		.then(res => {
+			runtime.base = res.base;
+			runtime.content = res.content;
 
-		// Initial load
-		load(res.content, (document.location.hash.length > 0) ? document.location.hash : false, true)
-		.catch(_ => {});	// No thrown error on intitial 404
-	});
+			// Initial load
+			load(res.content, (document.location.hash.length > 0) ? document.location.hash : false, true)
+				.catch(_ => {});	// No thrown error on intitial 404
+		});
 });
 
 // Intercept backwards navigation
@@ -62,29 +62,40 @@ const runtime = {
  * INITIALLY: Only call handler on the initial, implicitly performed load event
  * EVENTUALLY: Only call handler on future, manually induced load events
  */
- const flag = {
+const flag = {
 	ALWAYS: 0,
 	INITIALLY: 1,
 	EVENTUALLY: 2
-}
+};
 
+
+/**
+ * Clear the content wrapper (re-deploy placeholder).
+ */
+function clear() {
+	runtime.wrapper.innerHTML = "";
+	
+	runtime.placeholder.forEach(child => {
+		runtime.wrapper.appendChild(child);
+	});
+}
 
 /**
  * Dispatch a content loading event.
  */
 function dispatchLoadEvent(event, isInitial = false, ...args) {
 	(runtime.eventListeners[event] || [])
-	.filter(listener => {
-		if((listener.flag == flag.ALWAYS)
+		.filter(listener => {
+			if((listener.flag == flag.ALWAYS)
 		|| (isInitial == (listener.flag == flag.INITIALLY))) {
-			return true;
-		}
+				return true;
+			}
 
-		return false;
-	})
-	.forEach(listener => {
-		listener.callback.apply(null, args);
-	});
+			return false;
+		})
+		.forEach(listener => {
+			listener.callback.apply(null, args);
+		});
 }
 
 /**
@@ -92,7 +103,7 @@ function dispatchLoadEvent(event, isInitial = false, ...args) {
  * Supposed for application to scroll behavior.
  * @param {Function} callback Function to call for each interval step
  */
- function tolerantCallback(callback) {
+function tolerantCallback(callback) {
 	document.body.style.overflow = "hidden";
 	
 	let i = 0;
@@ -138,52 +149,56 @@ function load(content, anchor, isInitial = false, isHistoryBack = false) {
 			// Continuously dipatch progress event upon each registered step
 			dispatchLoadEvent("progress", isInitial, progress);
 		})
-		.then(res => {
+			.then(res => {
 			// Success => Expected content data
-			data = res;
-			isSuccessful = true;
-		})
-		.catch(res => {
-			if(res instanceof Error) {
-				reject(res);
-
-				return;
-			}
-
-			// Failure => Failure content data
-			data = res;
-			isSuccessful = false;
-		})
-		.finally(_ => {
-			// Insert content into designated wrapper
-			runtime.wrapper.innerHTML = data || "";
-
-			// Scroll behavior
-			(anchor !== false) && tolerantCallback(_ => {
-				if(!anchor) {
-					// Scroll to top (default behavior)
-					window.scrollTo(0, 0);
+				data = res;
+				isSuccessful = true;
+			})
+			.catch(res => {
+				if(res instanceof Error) {
+					reject(res);
 
 					return;
 				}
+
+				// Failure => Failure content data
+				data = res;
+				isSuccessful = false;
+			})
+			.finally(_ => {
+			// Insert content into designated wrapper
+				if(data) {
+					runtime.wrapper.innerHTML = data;
+				} else {
+					clear();
+				}
+
+				// Scroll behavior
+				(anchor !== false) && tolerantCallback(_ => {
+					if(!anchor) {
+					// Scroll to top (default behavior)
+						window.scrollTo(0, 0);
+
+						return;
+					}
 				
-				// Scroll to provided anchor
-				const anchorElement = document.querySelector(`#${anchor.replace(/^#/, "")}`);
-				anchorElement && anchorElement.scrollIntoView();
-			});
+					// Scroll to provided anchor
+					const anchorElement = document.querySelector(`#${anchor.replace(/^#/, "")}`);
+					anchorElement && anchorElement.scrollIntoView();
+				});
 			
-			// Manipulate history object if is irregularly motivated loading
-			!isHistoryBack
+				// Manipulate history object if is irregularly motivated loading
+				!isHistoryBack
 			&& history[`${isInitial ? "replace" : "push"}State`](content, "", `${runtime.base}${("/" + content.join("/")).replace(new RegExp(`/(${$this.SHARED.defaultContentName})?$`, "i"), "")}${document.location.search || ""}`);
 
-			// Fulfill promise according to content existence
-			if(isSuccessful === undefined) {
-				return;
-			}
-			isSuccessful ? resolve(content) : reject();
+				// Fulfill promise according to content existence
+				if(isSuccessful === undefined) {
+					return;
+				}
+				isSuccessful ? resolve(content) : reject();
 
-			dispatchLoadEvent("complete", isInitial, content);
-		});
+				dispatchLoadEvent("complete", isInitial, content);
+			});
 	});
 }
 
@@ -234,13 +249,4 @@ $this.PUBLIC.addFinishedHandler = (callback, flag = $this.PUBLIC.flag.ALWAYS) =>
 	$this.PUBLIC.addLoadListener("complete", callback, flag);
 };
 
-/**
- * Clear the content wrapper (re-deploy placeholder).
- */
-$this.PUBLIC.clear = () => {
-	runtime.wrapper.innerHTML = "";
-	console.log(runtime.placeholder)
-	runtime.placeholder.forEach(child => {
-		runtime.wrapper.appendChild(child);
-	});
-};
+$this.PUBLIC.clear = clear;
