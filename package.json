@@ -1,6 +1,6 @@
 {
   "name": "@t-ski/rapidjs--dynamic-content",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "rapidJS plug-in providing dynamic content loading functionality for compound page environments.",
   "main": "dist/app.js",
   "scripts": {
